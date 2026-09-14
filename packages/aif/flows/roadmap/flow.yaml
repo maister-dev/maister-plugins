@@ -6,17 +6,16 @@ metadata:
   labels: [epic, strategic, planning]
   route_when: "A large/multi-milestone initiative needing a roadmap."
   links:
-    - { kind: framework, title: "AI Factory 2.x", url: "https://github.com/lee-to/ai-factory/tree/2.x" }
+    - { kind: framework, title: "AI Factory 2.19.0", url: "https://github.com/lee-to/ai-factory/tree/2.19.0" }
     - { kind: docs, title: "Dev Workflow", url: "https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md" }
   sources:
-    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.x" }
+    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.19.0" }
+# Runner intent only — no model or adapter pin; the running MAIster instance
+# binds the slot to a host runner.
 runner_profiles:
-  claude-code:
+  primary:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
+    effort: high
 # M29 mutation gate (commit node) + M30 retry/session policies → engine_min >= 1.4.0.
 # Pinned to the M42 2.0.0 engine baseline for this package release (single
 # reused default session; no sessions: map needed).

@@ -6,17 +6,16 @@ metadata:
   labels: [qa, testing, test-plan]
   route_when: "An implemented feature/branch that needs a change summary, a structured test plan, and concrete test scenarios — not new implementation work."
   links:
-    - { kind: framework, title: "AI Factory 2.x", url: "https://github.com/lee-to/ai-factory/tree/2.x" }
+    - { kind: framework, title: "AI Factory 2.19.0", url: "https://github.com/lee-to/ai-factory/tree/2.19.0" }
     - { kind: docs, title: "Dev Workflow", url: "https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md" }
   sources:
-    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.x" }
+    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.19.0" }
+# Runner intent only — no model or adapter pin; the running MAIster instance
+# binds the slot to a host runner.
 runner_profiles:
-  claude-code:
+  primary:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
+    effort: high
 # Typed artifacts → engine_min >= 1.2.0; M30 retry/session policies → >= 1.4.0.
 # Pinned to the M42 2.0.0 engine baseline for this package release (single
 # reused default session; no sessions: map needed).
@@ -46,9 +45,11 @@ nodes:
         Task under test:
         {{ task.prompt }}
 
-        Non-interactive run — do NOT ask the user clarifying questions; run the
-        full pipeline (change summary → test plan → test cases) autonomously
-        and write the QA artifacts to the configured QA path.
+        Unattended node inside a MAIster flow: human input reaches this run only
+        through the flow's own review step, so run the full pipeline (change
+        summary → test plan → test cases) from the task and the branch, write
+        the QA artifacts to the configured QA path, and record every
+        non-obvious assumption in them.
 
         {{ review_comments }}
     output:

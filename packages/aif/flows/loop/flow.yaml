@@ -6,17 +6,16 @@ metadata:
   labels: [artifact, document, iterative]
   route_when: "A single non-code artifact (spec, doc, config, plan) that must be iterated against explicit quality criteria — not a feature/bugfix on the codebase."
   links:
-    - { kind: framework, title: "AI Factory 2.x", url: "https://github.com/lee-to/ai-factory/tree/2.x" }
+    - { kind: framework, title: "AI Factory 2.19.0", url: "https://github.com/lee-to/ai-factory/tree/2.19.0" }
     - { kind: docs, title: "Dev Workflow", url: "https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md" }
   sources:
-    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.x" }
+    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.19.0" }
+# Runner intent only — no model or adapter pin; the running MAIster instance
+# binds the slot to a host runner.
 runner_profiles:
-  claude-code:
+  primary:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
+    effort: high
 # Typed artifacts → engine_min >= 1.2.0; M30 retry/session policies → >= 1.4.0.
 # Pinned to the M42 2.0.0 engine baseline for this package release (single
 # reused default session; no sessions: map needed).
@@ -27,8 +26,8 @@ compat:
 defaults:
   session_policy: resume
 nodes:
-  # Front-loaded loop parameters — MAIster-native HITL form (AskUserQuestion is
-  # disabled in the adapter; the skill runs non-interactively against these).
+  # Front-loaded loop parameters — MAIster-native HITL form; the loop node
+  # runs unattended against these answers.
   - id: intake
     type: form
     settings:
@@ -52,9 +51,11 @@ nodes:
       prompt: |
         @skill:aif-loop {{ task.prompt }}
 
-        Non-interactive run — do NOT ask the user clarifying questions; run the
-        full reflex loop autonomously until the quality gates pass or the
-        iteration budget is exhausted.
+        Unattended node inside a MAIster flow: human input reaches this run only
+        through the flow's own review step, so run the full reflex loop from the
+        intake parameters below until the quality gates pass or the iteration
+        budget is exhausted, and record every non-obvious assumption in the
+        artifact.
 
         Loop parameters from intake:
         - Iteration budget: {{ steps.intake.vars.iterations }}

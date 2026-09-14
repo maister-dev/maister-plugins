@@ -2,35 +2,48 @@ schemaVersion: 1
 name: aif-bugfix
 metadata:
   title: "AIF — Bugfix"
-  summary: "Fast bug loop: fix → checks → review → commit; emits a self-improvement patch."
+  summary: "Regression-first bug loop: fix → verify → judge review → adversarial cross-review by the second agent → bounded fix loops → human review → commit; emits a self-improvement patch."
   labels: [bug, hotfix, regression]
-  route_when: "A reported bug/error to fix."
+  route_when: "A reported bug/error/regression to fix."
   links:
-    - { kind: framework, title: "AI Factory 2.x", url: "https://github.com/lee-to/ai-factory/tree/2.x" }
+    - { kind: framework, title: "AI Factory 2.19.0", url: "https://github.com/lee-to/ai-factory/tree/2.19.0" }
     - { kind: docs, title: "Dev Workflow", url: "https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md" }
   sources:
-    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.x" }
+    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.19.0" }
+# Runner intent only — no model or adapter pin; the running MAIster instance
+# binds the slot to a host runner.
 runner_profiles:
-  claude-code:
+  primary:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
-# Typed artifacts → engine_min >= 1.2.0; M30 retry/session policies → >= 1.4.0.
-# Pinned to the M42 2.0.0 engine baseline for this package release (single
-# reused default session; no sessions: map needed).
+    effort: high
+  independent:
+    capability_agent: codex
+    effort: high
+# Judge `decide` routing (1.7.0), rework onExhaustion/resetTargets (2.1.0),
+# flow-level `reentry` (3.5.0); pinned to the 3.7.0 engine this package
+# release was validated against.
 compat:
-  engine_min: 2.0.0
-# M30 (ADR-081): pin the engine default explicitly — one ACP session reused
-# across nodes; per-node/per-rework policies override.
+  engine_min: 3.7.0
+# An operator rework claim (ADR-160) re-enters the graph at `checks`.
+reentry: checks
+# M30 (ADR-081): rework re-entry resumes the prior ACP session by default; the
+# review→fix loops below override with `session_policy: new_session`.
 defaults:
   session_policy: resume
+# M42 (ADR-114): implementation, verification, cross-review and commit each
+# run in their own ACP session — a phase never inherits another phase's
+# context.
+sessions:
+  implement: { runner: primary }
+  verify: { runner: primary }
+  cross: { runner: independent }
+  commit: { runner: primary }
 verdict_calibration:
   confidence_min: 0.7
 nodes:
   - id: fix
     type: ai_coding
+    session: implement
     # M30 (ADR-080): auto-retry infra failures only; the workspace rewinds to
     # the pre-attempt checkpoint. Same policy on every ai_coding node below.
     retry_policy:
@@ -38,13 +51,32 @@ nodes:
       on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
       workspace: rewind-to-node-checkpoint
     action:
-      # `fix` is both the entry node and the review rework target. On entry
+      # `fix` is both the entry node and every rework target. On entry
       # review_comments is empty (runner-seeded); on a rework jump it carries the
       # reviewer's feedback so the re-fix addresses exactly what was rejected.
       prompt: |
         @skill:aif-fix {{ task.prompt }}
 
+        Unattended node inside a MAIster flow: human input reaches this run only
+        through the flow's own review step. Resolve open points from the report
+        and the codebase, record every non-obvious assumption in the fix
+        summary and the self-improvement patch, and keep the change surgical.
+        Tool-use permissions are handled by the platform.
+
+        Regression-first: reproduce the bug with the smallest failing check
+        (RED), fix the root cause, then rerun the same check (GREEN) and the
+        suites it touches. Tests cover the reported behavior and its edge cases
+        with minimum overlap and no trivial tests; follow SOLID, KISS, DRY and
+        the project's code conventions. Commit with Conventional Commits;
+        MAIster owns push and promotion.
+
+        Findings from the review loop or the human reviewer:
         {{ review_comments }}
+
+        Findings from the adversarial cross-review by the independent agent —
+        verify each against the code first, fix the confirmed ones, and state
+        the refuting evidence for every rejected finding in your summary:
+        {{ cross_review_comments }}
     output:
       produces:
         - id: impl-diff
@@ -57,12 +89,21 @@ nodes:
 
   - id: checks
     type: ai_coding
+    session: verify
     retry_policy:
       attempts: 2
       on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
       workspace: rewind-to-node-checkpoint
     action:
-      prompt: "@skill:aif-verify"
+      prompt: |
+        @skill:aif-verify
+
+        Unattended node: verify the fix against the reported behavior and the
+        whole gate set the project defines (typecheck, lint, unit and
+        integration suites, validators where they exist). Never weaken
+        assertions, skip, filter or widen timeouts to get green; a red suite is
+        a finding: classify each failure as obsolete (delete it, with the
+        reason) or broken (fix it). Report counts from the real runs.
     input:
       requires:
         - artifact: impl-diff
@@ -75,30 +116,117 @@ nodes:
       success: code_review
 
   - id: code_review
-    type: ai_coding
+    type: judge
+    session: verify
     retry_policy:
       attempts: 2
       on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
       workspace: rewind-to-node-checkpoint
     action:
-      prompt: "@skill:aif-review"
+      prompt: |
+        @skill:aif-review
+
+        Review scope (overrides the skill's staged-only default): all changes in
+        this branch over the project base branch (`git.base_branch` from
+        `.ai-factory/config.yaml`) — committed commits since the merge base plus
+        the working tree, including untracked files.
+
+        Review the fix against the reported bug: root cause actually removed
+        (not the symptom), regression check present and discriminating, tests
+        for functionality coverage, triviality absence and minimal overlap,
+        code for quality, specs-and-contracts consistency, SOLID, KISS, DRY
+        principles and project code conventions following. Cite paths and lines
+        for every finding.
+
+        End your response with a single `maister:output` block per the skill's
+        "Native flow routing output" section: recommend "fix" when there is any
+        CRITICAL finding (the loop then fixes and re-verifies), or "commit" when
+        there are none (non-critical suggestions ride along in review_comments
+        and do NOT block). Put the concrete items the next fix must address in
+        review_comments.
+    input:
+      requires:
+        - artifact: impl-diff
+          kind: diff
+    # ADR-103 (M38): route on the judge's own structured output.
+    output:
+      result:
+        schema: ./schemas/review-outcome.json
+        required: true
+    decide:
+      from: output.recommendation
+    transitions:
+      fix: fix
+      commit: cross_review
+      exhausted: review
+    # ADR-118: the autonomous bounded review↔fix loop; exhaustion routes to the
+    # human `review` so the accumulated worktree is preserved.
+    rework:
+      allowedTargets: [fix]
+      workspacePolicies: [keep]
+      maxLoops: 3
+      session_policy: new_session
+      commentsVar: review_comments
+      onExhaustion: exhausted
+
+  # Adversarial second opinion by the independent coding agent. Its findings
+  # are verified by the fix node before anything is changed.
+  - id: cross_review
+    type: judge
+    session: cross
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        @skill:aif-review
+
+        You are the independent second reviewer. Run a challenge review that
+        questions the chosen implementation, design choices, trade-offs and
+        assumptions — not just a stricter pass over defects. Stay read-only.
+
+        Review scope: all changes in this branch over the project base branch
+        (`git.base_branch` from `.ai-factory/config.yaml`) — committed commits
+        since the merge base plus the working tree, including untracked files.
+
+        Review specs and analytics for completeness, logical-holes absence and
+        consistency, clear expectations, contracts and acceptance-criteria
+        description; tests for functionality coverage, triviality absence and
+        minimal overlap; UI designs for UX maturity; code for quality, full
+        functionality readiness, specs-and-contracts consistency, SOLID, KISS,
+        DRY principles and project code conventions following. Cite paths and
+        lines for every finding; the fix node verifies each one against the
+        code before acting.
+
+        End your response with a single `maister:output` block per the skill's
+        "Native flow routing output" section: recommend "fix" when there is any
+        CRITICAL finding, or "commit" when there are none. Put every finding the
+        fix node must verify in review_comments.
     input:
       requires:
         - artifact: impl-diff
           kind: diff
     output:
-      produces:
-        - id: ai-judgment
-          kind: ai_judgment
+      result:
+        schema: ./schemas/review-outcome.json
+        required: true
+    decide:
+      from: output.recommendation
     transitions:
-      success: review
+      fix: fix
+      commit: review
+      exhausted: review
+    rework:
+      allowedTargets: [fix]
+      workspacePolicies: [keep]
+      maxLoops: 3
+      session_policy: new_session
+      commentsVar: cross_review_comments
+      onExhaustion: exhausted
 
   - id: review
     type: human
-    input:
-      requires:
-        - artifact: ai-judgment
-          kind: ai_judgment
     pre_finish:
       gates:
         - id: impl-diff-required
@@ -115,11 +243,14 @@ nodes:
     finish:
       human:
         role: maintainer
-        decisions: [approve, rework]
+        decisions: [approve, rework, takeover]
         commentsVar: review_comments
     transitions:
       approve: commit
       rework: fix
+      # Takeover returns at `checks` so the human's local edits are re-verified
+      # and re-reviewed before commit.
+      takeover: checks
     rework:
       allowedTargets: [fix]
       # M30 (ADR-079): the reviewer picks — keep the tree as rejected, or
@@ -127,15 +258,24 @@ nodes:
       workspacePolicies: [keep, rewind-to-node-checkpoint]
       maxLoops: 3
       commentsVar: review_comments
+      session_policy: new_session
+      # ADR-118: a human rework re-baselines both review loops' counters.
+      resetTargets: [code_review, cross_review]
 
   - id: commit
     type: ai_coding
+    session: commit
     retry_policy:
       attempts: 2
       on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
       workspace: rewind-to-node-checkpoint
     action:
-      prompt: "@skill:aif-commit"
+      prompt: |
+        @skill:aif-commit
+
+        Commit the working tree as Conventional Commits — split by concern when
+        the changes mix concerns. This node ends at a clean tracked tree;
+        MAIster owns push, merge and promotion, so no push or branch operations.
     pre_finish:
       gates:
         - id: commit-gate

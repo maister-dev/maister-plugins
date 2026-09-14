@@ -2,44 +2,50 @@ schemaVersion: 1
 name: aif-dev-light
 metadata:
   title: "AIF — Develop (light)"
-  summary: "aif-dev without the /aif-improve pass: intake → plan (emits the typed Plan-review pair itself) → plan_review → implement → bounded autonomous checks→code_review→fix loop → human review → commit."
+  summary: "aif-dev on one agent without the consensus, improve and cross-review passes: intake → plan (emits the typed Plan-review pair itself) → plan_review → TDD implement → verify → judge review with a bounded fix loop → human review → commit."
   labels: [feature, enhancement, refactor, light]
-  route_when: "A small/clear feature or refactor where a single planning pass is enough and the /aif-improve refinement step would add cost without value."
+  route_when: "A small/clear feature or refactor where a single planning pass and a single reviewer are enough and the second agent would add cost without value."
   links:
-    - { kind: framework, title: "AI Factory 2.x", url: "https://github.com/lee-to/ai-factory/tree/2.x" }
+    - { kind: framework, title: "AI Factory 2.19.0", url: "https://github.com/lee-to/ai-factory/tree/2.19.0" }
     - { kind: docs, title: "Dev Workflow", url: "https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md" }
   sources:
-    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.x" }
+    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.19.0" }
+# Runner intent only — no model or adapter pin; the running MAIster instance
+# binds the slot to a host runner.
 runner_profiles:
-  claude-code:
+  primary:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
-# Same floor rationale as aif-dev: typed Plan-review artifacts and the
-# declarative `settings.plan_review` capability (ADR-137) → engine_min >= 3.1.0
-# (covers sessions 2.0.0, rework onExhaustion/resetTargets 2.1.0, decide 1.7.0).
+    effort: high
+  # Planning slot — bind it to the strongest model available on the host (for
+  # example a fable-class runner): it drafts, synthesizes and refines the plan.
+  planner:
+    capability_agent: claude
+    effort: high
+# Typed Plan-review (3.1.0) + flow-level `reentry` (3.5.0); pinned to the
+# 3.7.0 engine this package release was validated against.
 compat:
-  engine_min: 3.1.0
+  engine_min: 3.7.0
+# An operator rework claim (ADR-160) re-enters the graph at `checks`.
+reentry: checks
 # M30 (ADR-081): rework re-entry resumes the prior ACP session by default; the
 # review→fix loop below overrides with `session_policy: new_session`.
 defaults:
   session_policy: resume
-# M42 (ADR-114): fresh-context phases at meaningful boundaries — implement /
-# verify / fix / commit — each inheriting the flow's one claude-code runner.
-# Planning stays on the implicit `default` session.
+# M42 (ADR-114): planning, implementation, verification, fix and commit each
+# run in their own ACP session — a phase never inherits another phase's
+# context.
 sessions:
-  implement: { runner: claude-code }
-  verify: { runner: claude-code }
-  fix: { runner: claude-code }
-  commit: { runner: claude-code }
+  planning: { runner: planner }
+  implement: { runner: primary }
+  verify: { runner: primary }
+  fix: { runner: primary }
+  commit: { runner: primary }
 # Flow-level calibration default, folded into the advisory ai_judgment gate at compile.
 verdict_calibration:
   confidence_min: 0.7
 nodes:
-  # Preferences intake — MAIster-native HITL form (AskUserQuestion is disabled in
-  # the adapter; the skills run non-interactively against these answers).
+  # Preferences intake — MAIster-native HITL form. Everything a human decides
+  # before planning is collected here; later nodes run unattended.
   - id: intake
     type: form
     settings:
@@ -48,9 +54,11 @@ nodes:
       success: plan
 
   # The light variant's one planning pass: /aif-plan plans AND emits the typed
-  # Plan-review pair that aif-dev's separate /aif-improve node produces.
+  # Plan-review pair that aif-dev's separate /aif-improve node produces. `plan`
+  # is also the plan_review rework target.
   - id: plan
     type: ai_coding
+    session: planning
     # M30 (ADR-080): auto-retry infra failures only; the workspace rewinds to
     # the pre-attempt checkpoint. Same policy on every ai_coding node below.
     retry_policy:
@@ -58,15 +66,33 @@ nodes:
       on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
       workspace: rewind-to-node-checkpoint
     action:
-      # `plan` is the plan_review rework target. On the initial visit
-      # plan_review_comments is empty (runner-seeded); on a rework jump it
-      # carries the reviewer's feedback so the re-plan addresses exactly what
-      # was rejected.
       prompt: |
-        @skill:aif-plan {{ task.prompt }}
+        @skill:aif-plan full {{ task.prompt }}
 
-        Non-interactive run — apply these preferences and do NOT ask:
-        Testing={{ steps.intake.vars.tests }}, Logging={{ steps.intake.vars.logging }}, Docs={{ steps.intake.vars.docs }}.
+        Unattended node inside a MAIster flow: human input reaches this run only
+        through the flow's own review steps. Preferences already answered at
+        intake — Testing={{ steps.intake.vars.tests }}, Logging={{ steps.intake.vars.logging }}, Docs={{ steps.intake.vars.docs }};
+        link a roadmap milestone only when the roadmap clearly names this work.
+        Resolve everything else from the codebase and `.ai-factory/` context,
+        record every non-obvious assumption in the plan, and leave genuinely
+        blocking choices to the typed Plan-review decisions below.
+
+        The task text may be a terse intent in any language. Keep it verbatim in
+        `## Original Request` and add an English `## Requirements Brief` (goal,
+        in-scope, non-goals, affected contracts, data model, docs, testable
+        acceptance criteria, assumptions) before the tasks.
+
+        Plan quality bar. Make the plan SDD-driven: accurately work on API
+        contracts, DB migrations and system-analytics improvement/creation —
+        migrations as SQL + journal + snapshot, contract and docs updates as
+        plan tasks rather than follow-ups; allocate numbered artifacts (ADR,
+        migration) from the base branch HEAD and list them in the plan header.
+        Check the plan for fullness/completeness, consistency and logical-holes
+        absence, concrete expectations, requirements and acceptance criteria.
+        The implementation phase is TDD-based: every task names the tests
+        written first; tests cover all required functionality and edge-case
+        checks with minimum overlap and no trivial tests, and go through RED →
+        GREEN → refactor.
 
         {{ plan_review_comments }}
 
@@ -77,9 +103,11 @@ nodes:
         emitting the review pair yourself:
         Write the final Markdown implementation plan to $MAISTER_PLAN_DOCUMENT_FILE.
         Write its strict PlanReviewV1 JSON companion to $MAISTER_PLAN_REVIEW_FILE.
-        Classify non-blocking assumptions separately from blocking decisions. Every
-        decision must offer 2-8 concrete options with stable ids and consequences;
-        never infer choices from prose or copy secret values into either artifact.
+        Classify non-blocking assumptions separately from blocking decisions.
+        Every decision offers 2-8 concrete options with stable ids, the
+        consequences (pros/cons) of each, and the recommended option with its
+        reason, written in the project's configured `language.ui`; never infer
+        choices from prose or copy secret values into either artifact.
     output:
       produces:
         - id: plan-document
@@ -127,7 +155,24 @@ nodes:
       prompt: |
         @skill:aif-implement
 
-        Non-interactive run — do NOT ask the user clarifying questions; proceed autonomously (tool-use permission prompts are handled by the platform).
+        Unattended node: execute the approved plan end to end — every task,
+        every expectation, every acceptance criterion — resolving open points
+        from the plan and the codebase and recording assumptions in the
+        implementation summary. Tool-use permissions are handled by the
+        platform.
+
+        TDD per task: write the failing test first (RED), make it pass (GREEN),
+        then refactor. Tests cover all required functionality and edge-case
+        checks with minimum overlap and no trivial tests; integration tests run
+        against real seams (real database, real entrypoints), never mocks of the
+        thing under test. The implementation must be fully consistent with the
+        specs and requirements, satisfy all acceptance criteria, turn the tests
+        fully green, and follow SOLID, KISS, DRY and the project's code
+        conventions. Surgical changes: every changed line traces to a plan task;
+        fix pre-existing defects you hit inside a task's scope instead of filing
+        TODOs; update the docs and contracts the plan names in the same
+        increment. Commit at the plan's checkpoints with Conventional Commits;
+        MAIster owns push and promotion.
     output:
       produces:
         - id: impl-diff
@@ -149,7 +194,13 @@ nodes:
       prompt: |
         @skill:aif-verify
 
-        Non-interactive run — do NOT ask the user clarifying questions; proceed autonomously.
+        Unattended node: verify the branch against the plan's acceptance
+        criteria and the whole gate set the project defines (typecheck, lint,
+        unit and integration suites, contract and docs validators where they
+        exist). Never weaken assertions, skip, filter or widen timeouts to get
+        green; a red suite is a finding: classify each failure as obsolete
+        (delete it, with the reason) or broken (fix it). Report counts from the
+        real runs, not adjectives.
     input:
       requires:
         - artifact: impl-diff
@@ -173,13 +224,25 @@ nodes:
       prompt: |
         @skill:aif-review
 
-        Non-interactive run — do NOT ask the user clarifying questions; proceed autonomously.
+        Review scope (overrides the skill's staged-only default): all changes in
+        this branch over the project base branch (`git.base_branch` from
+        `.ai-factory/config.yaml`) — committed commits since the merge base plus
+        the working tree, including untracked files.
 
-        End your response with a single `maister:output` block per the aif-review
-        skill's "Native flow routing output" section: recommend "fix" when there is
-        any CRITICAL finding (the loop then fixes and re-verifies), or "commit" when
-        there are none (non-critical suggestions ride along in review_comments and do
-        NOT block). Put the concrete items the next fix must address in review_comments.
+        Review specs and analytics for completeness, logical-holes absence and
+        consistency, clear expectations, contracts and acceptance-criteria
+        description; tests for functionality coverage, triviality absence and
+        minimal overlap; UI designs for UX maturity; code for quality, full
+        functionality readiness, specs-and-contracts consistency, SOLID, KISS,
+        DRY principles and project code conventions following. Cite paths and
+        lines for every finding.
+
+        End your response with a single `maister:output` block per the skill's
+        "Native flow routing output" section: recommend "fix" when there is any
+        CRITICAL finding (the loop then fixes and re-verifies), or "commit" when
+        there are none (non-critical suggestions ride along in review_comments
+        and do NOT block). Put the concrete items the next fix must address in
+        review_comments.
     input:
       requires:
         - artifact: impl-diff
@@ -247,7 +310,7 @@ nodes:
 
   - id: fix
     type: ai_coding
-    # M42: fresh rework context, focused on {{ review_comments }}.
+    # M42: fresh rework context, focused on the review findings.
     session: fix
     retry_policy:
       attempts: 2
@@ -255,9 +318,17 @@ nodes:
       workspace: rewind-to-node-checkpoint
     action:
       prompt: |
-        @skill:aif-fix {{ review_comments }}
+        @skill:aif-fix
 
-        Non-interactive run — do NOT ask the user clarifying questions; proceed autonomously (tool-use permission prompts are handled by the platform).
+        Unattended node: address the findings below, resolving open points from
+        the plan and the codebase and recording assumptions in the fix summary.
+        Tool-use permissions are handled by the platform.
+
+        Findings from the review loop or the human reviewer:
+        {{ review_comments }}
+
+        Regression-first where a finding is behavioral: reproduce it with a
+        failing test, then fix; keep the change surgical and the suites green.
     transitions:
       success: checks
 
@@ -273,7 +344,10 @@ nodes:
       prompt: |
         @skill:aif-commit
 
-        Non-interactive run — do NOT ask the user clarifying questions (e.g. do not prompt to push); commit only.
+        Commit the working tree as Conventional Commits — split by concern when
+        the changes mix concerns, following the plan's Commit Plan when present.
+        This node ends at a clean tracked tree; MAIster owns push, merge and
+        promotion, so no push or branch operations.
     pre_finish:
       gates:
         - id: commit-gate

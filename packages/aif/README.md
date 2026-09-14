@@ -8,6 +8,66 @@ MAIster flows backed by a shared skills + subagents bundle.
 This package is self-contained; nothing here imports from MAIster core.
 Versioned by per-package git tags: `aif/vX.Y.Z` (see the repo root README).
 
+## What changed in `aif/v3.0.0`
+
+A major bump: the engine floor of the delivery flows moves to **3.7.0**, the
+vendored bundle moves to upstream **ai-factory 2.19.0**, and `aif-dev`,
+`aif-autonomous` and `aif-bugfix` now need two coding agents. Design note:
+[`docs/aif/specs/2026-09-14-aif-v3-design.md`](../../docs/aif/specs/2026-09-14-aif-v3-design.md).
+
+- **Upstream refresh 2.14.0 → 2.19.0** (skills + subagents vendored from the
+  `2.19.0` git tag, incl. skill `tests/`): `aif-plan` gains `ultra` mode, the
+  verbatim `## Original Request` section and `## Requirements Reconciliation`
+  gates; `aif-fix` is regression-first; new skills `aif-qa-check`,
+  `aif-transfer`, `aif-warmup`; `aif-loop` active-time budget. The two MAIster
+  patches are re-applied on top: the `maister:output` routing block in
+  `aif-review` and `model: opus` for the Explore subagents in `aif-plan` /
+  `aif-fix`. `config/ai-factory.config.yaml` is regenerated from the 2.19.0
+  template with the same git overrides.
+- **Review by two different agents.** After the claude judge (`code_review`)
+  a `cross_review` judge on the `independent` (codex) runner runs an
+  adversarial second review in `aif-dev`, `aif-autonomous` and `aif-bugfix`;
+  its findings travel in `cross_review_comments` and are verified by the
+  `fix` node before anything changes. A human rework re-baselines both loops.
+  `aif-dev-light` stays single-agent by design.
+- **`aif-dev` plans by consensus.** A `plan_consensus` node fans out read-only
+  plan drafts to `planner` (claude) and `independent` (codex), cross-verifies
+  them on five material axes, and synthesizes one agreed plan; `plan`
+  materializes it (inline artifact injection) through `/aif-plan full`.
+- **One ACP session per phase, everywhere.** Planning (`planning` session on
+  the `planner` slot), implementation, verification (+ judge), cross-review,
+  fix and commit never share a session; `aif-bugfix` gets the same split.
+- **Prompts rewritten around what the flow owner actually asks for**
+  (distilled from ~50 MAIster working sessions): planning is SDD-driven — API
+  contracts, DB migrations (SQL + journal + snapshot), ADR/system-analytics
+  docs, numbered artifacts, completeness/consistency/logical-holes checks,
+  concrete acceptance criteria; implementation is TDD (RED → GREEN →
+  refactor, no trivial or overlapping tests, real seams), consistent with the
+  specs, SOLID/KISS/DRY, surgical; verification never weakens a suite; both
+  reviews cover the whole branch over the base branch across specs, analytics,
+  contracts, tests, UX maturity, code quality and conventions. A terse task
+  intent in any language is restated as an English `## Requirements Brief`.
+- **"Do NOT ask" instructions removed.** Every node now states the unattended
+  contract instead: human input reaches the run only through the flow's own
+  review steps, assumptions are recorded in the artifact, and blocking choices
+  become typed Plan-review decisions (written in the project's `language.ui`).
+- **Runner intent only, three slots.** Profiles declare `capability_agent` +
+  `effort`; no model or adapter pin — the running MAIster instance binds each
+  slot. `primary` (claude) runs implementation, verification, fix and commit;
+  `planner` (claude) is a separate slot so a project can bind its strongest
+  model (a fable-class runner) to planning, consensus drafting and synthesis;
+  `independent` (codex) is the second agent.
+- **`aif-bugfix` modernized**: judge `decide` fix loop (`maxLoops: 3`,
+  exhaustion → human) plus the codex `cross_review`, `takeover` decision,
+  regression-first prompt, per-phase sessions.
+- **`reentry: checks`** on `aif-dev`, `aif-dev-light`, `aif-autonomous`,
+  `aif-bugfix` (ADR-160 rework claims re-verify before commit).
+- Engine floors: the four delivery flows `3.7.0`; `aif-evolve`, `aif-init`,
+  `aif-roadmap`, `aif-loop`, `aif-qa` keep `2.0.0` (profile/prompt edits only).
+- Requires the MAIster fix that renders a consensus node's `prompt` with the
+  run context (`{{ task.prompt }}`, intake vars) before drafts launch; on an
+  older engine the drafters would receive the literal template text.
+
 ## What changed in `aif/v2.6.0`
 
 Wraps the four flows the original package design deferred (§10 of the
@@ -36,9 +96,10 @@ the flow revision at install time.
 
 - **Extracted from the MAIster repo** (`plugins/aif` @ `maister@c104f66b`,
   2026-06-12); history prior to extraction lives there.
-- **Framework**: AI Factory `2.x` —
-  https://github.com/lee-to/ai-factory/tree/2.x
-  (Apache-2.0). Its skills and subagents are vendored under `capability/`.
+- **Framework**: AI Factory `2.19.0` (git tag `2.19.0`) —
+  https://github.com/lee-to/ai-factory/tree/2.19.0
+  (Apache-2.0). Its skills and subagents are vendored under `capability/`
+  with two MAIster patches (see the `v3.0.0` notes).
 - **Dev workflow**:
   https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md
 - **Config reference**:
@@ -50,10 +111,10 @@ Nine flows ship with this package, each routed by what the incoming task is.
 
 | flow id          | route_when                                                                                     |
 | ---------------- | ---------------------------------------------------------------------------------------------- |
-| `aif-dev`        | A feature / enhancement / refactor with a clear spec (plan → review → implement → review → fix). |
-| `aif-dev-light`  | A small/clear feature where one planning pass suffices — `aif-dev` minus `/aif-improve`.        |
+| `aif-dev`        | A feature / enhancement / refactor that deserves a second agent: consensus planning (claude + codex) → plan → improve → plan review → TDD implement → verify → judge review → codex cross-review → human review → commit. |
+| `aif-dev-light`  | A small/clear feature on one agent — `aif-dev` minus consensus, `/aif-improve` and cross-review. |
 | `aif-autonomous` | A well-specified task to deliver end-to-end without mid-flow reviews; questions front-loaded.   |
-| `aif-bugfix`     | A reported bug / error / regression to fix (`/aif-fix` loop; emits a self-improvement patch).   |
+| `aif-bugfix`     | A reported bug / error / regression: regression-first fix → verify → judge fix loop → human review → commit; emits a self-improvement patch. |
 | `aif-evolve`     | Periodic maintenance: distill accumulated fix-patches into better skills (not feature work).    |
 | `aif-roadmap`    | A large / multi-milestone initiative needing a roadmap before planning.                         |
 | `aif-init`       | One-time: project not yet AIF-initialized (`/aif` + `/aif-architecture`).                       |
@@ -118,10 +179,10 @@ shipped inside the MAIster repo):
 A consuming project's `maister.yaml` registers this package twice over:
 
 - **One shared `capability_imports` bundle** pointing at `capability/`.
-  All five flows reuse the same vendored skills + subagents instead of each
+  All nine flows reuse the same vendored skills + subagents instead of each
   carrying their own copy. MAIster materializes these into the workspace
   (per ADR-043) — there is no `ai-factory init` and no npm install.
-- **Five `flows[]` sources**, one per `flows/<id>/flow.yaml` above. Each flow
+- **Nine `flows[]` sources**, one per `flows/<id>/flow.yaml` above. Each flow
   resolves its steps against the shared capability bundle.
 
 If a project has no `.ai-factory/config.yaml`, it receives
@@ -129,9 +190,18 @@ If a project has no `.ai-factory/config.yaml`, it receives
 in that template matter most for `git`: `git.create_branches: false` —
 **MAIster owns the worktree and branch**, so AIF must not create its own.
 
-Interactivity (questions, approvals, review gates) is delivered by
-**MAIster-native HITL** (form / permission steps), not the AIF
-`AskUserQuestion` tool.
+Interactivity (preferences, approvals, review gates, typed plan decisions) is
+delivered by **MAIster-native HITL** (form / human / permission steps), not the
+AIF `AskUserQuestion` tool (the adapter disables it). Every agent node runs
+unattended: its prompt says where human input enters, tells the agent to
+record assumptions in the artifact, and routes blocking choices into the typed
+Plan-review decisions. Artifact and question language follow the project's
+`.ai-factory/config.yaml` (`language.ui` / `language.artifacts`) — set both to
+`ru` for Russian plans and decisions; no separate package is needed.
+
+`aif-dev`, `aif-autonomous` and `aif-bugfix` need a host runner for BOTH
+`claude` and `codex`; `aif-dev-light` and the meta flows need `claude` only.
+Bind the `planner` slot to your strongest model.
 
 > **Run the `aif-init` flow first** if the project has no
 > `.ai-factory/DESCRIPTION.md`. The other flows assume an initialized AIF

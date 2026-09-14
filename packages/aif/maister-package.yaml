@@ -6,12 +6,12 @@ schemaVersion: 1
 name: aif
 metadata:
   title: "AI Factory"
-  summary: "Spec-driven delivery flows (dev, dev-light, autonomous, bugfix, evolve, roadmap, init, loop, qa) + vendored AIF skills/agents bundle."
+  summary: "Spec-driven delivery flows (dev with consensus planning + codex cross-review, dev-light, autonomous, bugfix, evolve, roadmap, init, loop, qa) + vendored AI Factory 2.19.0 skills/agents bundle."
   links:
-    - { kind: framework, title: "AI Factory 2.x", url: "https://github.com/lee-to/ai-factory/tree/2.x" }
+    - { kind: framework, title: "AI Factory 2.19.0", url: "https://github.com/lee-to/ai-factory/tree/2.19.0" }
     - { kind: docs, title: "Dev Workflow", url: "https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md" }
   sources:
-    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.x" }
+    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.19.0" }
 flows:
   - { id: aif-dev, path: flows/dev }
   - { id: aif-dev-light, path: flows/dev-light }

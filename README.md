@@ -19,7 +19,7 @@ packages/
 
 | Package | Contents |
 | ------- | -------- |
-| [`aif`](packages/aif/) | AI Factory workflows: 5 flows (`aif-dev`, `aif-bugfix`, `aif-evolve`, `aif-roadmap`, `aif-init`) + vendored skills/agents bundle. |
+| [`aif`](packages/aif/) | AI Factory 2.19.0 workflows: 9 flows (`aif-dev` with claude + codex consensus planning and adversarial cross-review, `aif-dev-light`, `aif-autonomous`, `aif-bugfix`, `aif-evolve`, `aif-roadmap`, `aif-init`, `aif-loop`, `aif-qa`) + vendored skills/agents bundle. |
 | [`pstack`](packages/pstack/) | [pstack](https://github.com/cursor/plugins/tree/main/pstack) evidence-first engineering: 8 MAIster-native flows, full vendored skills/agents bundle, typed result profiles, and the `pstack-rigor` Evaluation Method. |
 | [`superpowers`](packages/superpowers/) | Superpowers v6.3.0: 4 typed governed flows + all 14 upstream skills, with structured design, verification, and review handoffs. |
 | [`openspec`](packages/openspec/) | OpenSpec v1.12.0: 4 spec-driven flows + all 12 upstream Agent Skills, exact-version CLI precondition, and typed change/review handoffs. |
