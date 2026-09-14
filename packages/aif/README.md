@@ -22,9 +22,10 @@ vendored bundle moves to upstream **ai-factory 2.19.0**, and `aif-dev`,
   gates; `aif-fix` is regression-first; new skills `aif-qa-check`,
   `aif-transfer`, `aif-warmup`; `aif-loop` active-time budget. The two MAIster
   patches are re-applied on top: the `maister:output` routing block in
-  `aif-review` and `model: opus` for the Explore subagents in `aif-plan` /
-  `aif-fix`. `config/ai-factory.config.yaml` is regenerated from the 2.19.0
-  template with the same git overrides.
+  `aif-review`, and `model: opus` for the Explore subagents in `aif-plan` /
+  `aif-fix` and for the `commit-preparer`, `docs-auditor`, `loop-critic`,
+  `loop-orchestrator` subagents. `config/ai-factory.config.yaml` is
+  regenerated from the 2.19.0 template with the same git overrides.
 - **Review by two different agents.** After the claude judge (`code_review`)
   a `cross_review` judge on the `independent` (codex) runner runs an
   adversarial second review in `aif-dev`, `aif-autonomous` and `aif-bugfix`;
@@ -49,10 +50,16 @@ vendored bundle moves to upstream **ai-factory 2.19.0**, and `aif-dev`,
   reviews cover the whole branch over the base branch across specs, analytics,
   contracts, tests, UX maturity, code quality and conventions. A terse task
   intent in any language is restated as an English `## Requirements Brief`.
-- **"Do NOT ask" instructions removed.** Every node now states the unattended
-  contract instead: human input reaches the run only through the flow's own
-  review steps, assumptions are recorded in the artifact, and blocking choices
-  become typed Plan-review decisions (written in the project's `language.ui`).
+- **"Do NOT ask" instructions removed.** Planning, implementation and fix
+  nodes drive the skills through their own **Handoff mode** (`HANDOFF_MODE=1`,
+  prepared branch): the skills know an orchestrator owns the branch, skip
+  their interactive prompts and Handoff MCP calls, and name the plan after
+  the branch so `/aif-improve`, `/aif-implement` and `/aif-verify` find it.
+  Skills without a Handoff mode (`aif-verify`, `aif-review`, `aif-commit`) get
+  their questions answered in the node prompt. Every node states where human
+  input enters, assumptions are recorded in the artifact, and blocking choices
+  become typed Plan-review decisions (written in the project's `language.ui`,
+  with the strict PlanReviewV1 shape spelled out in the prompt).
 - **Runner intent only, three slots.** Profiles declare `capability_agent` +
   `effort`; no model or adapter pin — the running MAIster instance binds each
   slot. `primary` (claude) runs implementation, verification, fix and commit;
@@ -188,10 +195,13 @@ A consuming project's `maister.yaml` registers this package twice over:
 - **Nine `flows[]` sources**, one per `flows/<id>/flow.yaml` above. Each flow
   resolves its steps against the shared capability bundle.
 
-If a project has no `.ai-factory/config.yaml`, it receives
-`config/ai-factory.config.yaml` as the default. The MAIster-compat overrides
-in that template matter most for `git`: `git.create_branches: false` —
-**MAIster owns the worktree and branch**, so AIF must not create its own.
+MAIster writes the `git` overrides (`enabled: true`, `create_branches:
+false`, `base_branch`) into the run worktree's `.ai-factory/config.yaml`
+itself (skip-worktree, never committed) — **MAIster owns the worktree and
+branch**, so AIF must not create its own. `config/ai-factory.config.yaml` is
+the reference template for a project's own config (language, paths,
+workflow); copy it into the project to change `language.ui` /
+`language.artifacts` or the plan-file format.
 
 Interactivity (preferences, approvals, review gates, typed plan decisions) is
 delivered by **MAIster-native HITL** (form / human / permission steps), not the

@@ -37,11 +37,19 @@ still open. Companion to the release notes in
 
 - **D1 — Unattended contract replaces "do NOT ask".** The adapter disables
   `AskUserQuestion`, so a chat question would only end a node's turn early.
-  Each node now states where human input enters (form intake, typed
-  Plan-review, human review), tells the agent to record assumptions in its
-  artifact, and routes blocking choices into typed Plan-review decisions
-  written in the project's `language.ui`. The wording no longer says "do not
-  ask"; the behavior it protected is preserved by describing the channel.
+  Planning, implementation and fix nodes now drive the skills through their
+  own Handoff mode (`HANDOFF_MODE=1`, `HANDOFF_BRANCH_PREPARED=1`, branch =
+  the one MAIster checked out): the skills skip their interactive prompts and
+  Handoff MCP calls and name the plan after the branch, which is also how
+  `/aif-improve`, `/aif-implement` and `/aif-verify` discover it (with
+  `create_branches: false` a slug-named plan would be undiscoverable in a
+  repo with more than one plan — review finding). Skills without a Handoff
+  mode (`aif-verify`, `aif-review`, `aif-commit`) get each of their questions
+  answered in the node prompt. Each node states where human input enters,
+  records assumptions in its artifact, and routes blocking choices into typed
+  Plan-review decisions written in the project's `language.ui`; the strict
+  PlanReviewV1 shape is spelled out in the prompt because no vendored skill
+  knows that contract.
 - **D2 — The owner's phrasings become the prompts.** The `/aif-improve` SDD
   bar, the TDD contract and the review dimension list are placed verbatim (as
   prose) on `improve` / `plan`, `implement` and both review judges. Review
@@ -107,10 +115,18 @@ still open. Companion to the release notes in
 
 ## Verification done
 
-- `validate:package-compatibility --mode ci` over `aif/v3.0.0`: all nine
-  flows compile against engine 3.7.0.
-- MAIster: RED → GREEN unit tests for the consensus prompt rendering,
-  typecheck, scoped lint, grammar/assistant tests, `validate:docs`.
+- `validate:package-compatibility --mode ci` against the branch head (tag
+  label `aif/v3.0.0`): all nine flows compile against engine 3.8.0.
+- MAIster: RED → GREEN unit tests for the consensus prompt rendering, the
+  round-2 critique staying literal, the guarded default form, and drafts /
+  agreed material reaching verifier and synthesizer as template values;
+  typecheck, scoped lint, grammar/assistant tests, `validate:docs`, the
+  `run_results` engine-version integration test.
+- Three reviews of the branch by different agents: `aif-verify`
+  (fresh-context Claude), `aif-review` (Claude on opus), Codex adversarial
+  review; every confirmed finding is fixed in the branch (cross-review
+  comment routing, engine floor 3.8.0, Handoff mode for plan discovery,
+  pre-answered skill questions, verifier/synthesizer re-render hazard).
 
 ## Not verified yet
 
@@ -119,8 +135,9 @@ still open. Companion to the release notes in
   plan lands as a proper `.ai-factory/plans/<stem>.md` and that the
   PlanReviewV1 decisions read well. Needs web + supervisor up, the package
   installed from the local checkout, and API keys for both providers.
-- Known residual risk in the engine: draft text or verifier claims containing
-  Mustache braces would be re-rendered inside the synthesis/verifier prompts.
+- Known limitation: `fix` cannot declare `impl-diff` too (one producer per
+  artifact id), so the `review` gate's `impl-diff` evidence keeps the
+  pre-fix head; the workbench diff is live. Pre-existing since v2.x.
 
 ## Resolved with the owner (2026-09-14)
 

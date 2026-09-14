@@ -57,8 +57,11 @@ nodes:
       prompt: |
         @skill:aif-fix {{ task.prompt }}
 
-        Unattended node inside a MAIster flow: human input reaches this run only
-        through the flow's own review step. Resolve open points from the report
+        HANDOFF_MODE=1 with an empty HANDOFF_TASK_ID — the skill's own unattended
+        mode: fix-now with a regression check, no Handoff MCP calls.
+
+        Human input reaches this run only through the flow's own review step.
+        Resolve open points from the report
         and the codebase, record every non-obvious assumption in the fix
         summary and the self-improvement patch, and keep the change surgical.
         Tool-use permissions are handled by the platform.
@@ -74,9 +77,10 @@ nodes:
         or the human reviewer):
         {{ review_comments }}
 
-        Findings marked `[cross-review]` come from the independent second agent:
-        verify each against the code first, fix the confirmed ones, and state
-        the refuting evidence for every rejected finding in your summary.
+        Verify every finding against the code before acting on it — those
+        marked `[cross-review]` come from the independent second agent and need
+        this scrutiny most: fix the confirmed ones and state the refuting
+        evidence for every rejected finding in your summary.
     output:
       produces:
         - id: impl-diff
@@ -104,6 +108,13 @@ nodes:
         assertions, skip, filter or widen timeouts to get green; a red suite is
         a finding: classify each failure as obsolete (delete it, with the
         reason) or broken (fix it). Report counts from the real runs.
+
+        Answers to the skill's own questions: no plan artifact → "Verify branch
+        diff" against the base branch; context drift → do not capture, report
+        it; issues found → report them in the Verification Report and the
+        aif-gate-result and finish — never "Fix now", "Fix directly" or "Accept
+        as-is" (the flow's fix and review nodes own that); additional checks →
+        skip.
     input:
       requires:
         - artifact: impl-diff
@@ -124,12 +135,14 @@ nodes:
       workspace: rewind-to-node-checkpoint
     action:
       prompt: |
-        @skill:aif-review
+        @skill:aif-review +check
 
-        Review scope (overrides the skill's staged-only default): all changes in
-        this branch over the project base branch (`git.base_branch` from
-        `.ai-factory/config.yaml`) — committed commits since the merge base plus
-        the working tree, including untracked files.
+        Review scope — this replaces the skill's argument routing (no staged-only
+        default): all changes in this branch over the project base branch
+        (`git.base_branch` from `.ai-factory/config.yaml`) — committed commits
+        since the merge base plus the working tree, including untracked files.
+        Answers to the skill's own questions: more than 20 commits → review all
+        of them.
 
         Review the fix against the reported bug: root cause actually removed
         (not the symptom), regression check present and discriminating, tests
@@ -186,9 +199,12 @@ nodes:
         questions the chosen implementation, design choices, trade-offs and
         assumptions — not just a stricter pass over defects. Stay read-only.
 
-        Review scope: all changes in this branch over the project base branch
+        Review scope — this replaces the skill's argument routing (no staged-only
+        default): all changes in this branch over the project base branch
         (`git.base_branch` from `.ai-factory/config.yaml`) — committed commits
         since the merge base plus the working tree, including untracked files.
+        Answers to the skill's own questions: more than 20 commits → review all
+        of them.
 
         Review specs and analytics for completeness, logical-holes absence and
         consistency, clear expectations, contracts and acceptance-criteria
@@ -283,6 +299,10 @@ nodes:
         Commit the working tree as Conventional Commits — split by concern when
         the changes mix concerns. This node ends at a clean tracked tree;
         MAIster owns push, merge and promotion, so no push or branch operations.
+
+        Answers to the skill's own questions: a Commit Plan in the active plan →
+        follow it; proposed message → commit as is; unrelated work mixed in the
+        staged changes → split as suggested; push to remote → no.
     pre_finish:
       gates:
         - id: commit-gate

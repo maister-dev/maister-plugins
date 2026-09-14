@@ -68,6 +68,18 @@ nodes:
       prompt: |
         @skill:aif-plan full {{ task.prompt }}
 
+        Handoff contract — the skill's own unattended mode; MAIster prepared the
+        branch and worktree and there is no Handoff MCP:
+        HANDOFF_MODE=1
+        HANDOFF_BRANCH_PREPARED=1
+        HANDOFF_BRANCH_NAME: the branch this worktree has checked out (read it
+        with `git rev-parse --abbrev-ref HEAD`; MAIster created it, so the strict
+        equality check holds by construction)
+        HANDOFF_TASK_ID: empty (no plan annotation)
+        Consequences: full mode, no branch or worktree operations, no Handoff
+        MCP calls, and the plan file is named after the branch — that is how
+        /aif-improve, /aif-implement and /aif-verify find it.
+
         Fully autonomous flow: there is NO human plan review, so this node
         owns every decision. Preferences already answered at intake —
         Testing={{ steps.intake.vars.tests }}, Logging={{ steps.intake.vars.logging }}, Docs={{ steps.intake.vars.docs }};
@@ -77,9 +89,10 @@ nodes:
         placeholder that would need a human answer.
 
         The task text may be a terse intent in any language. Keep it verbatim in
-        `## Original Request` and add an English `## Requirements Brief` (goal,
-        in-scope, non-goals, affected contracts, data model, docs, testable
-        acceptance criteria, assumptions) before the tasks.
+        `## Original Request` and add a `## Requirements Brief` (goal, in-scope,
+        non-goals, affected contracts, data model, docs, testable acceptance
+        criteria, assumptions) before the tasks, written in the project's
+        artifact language (`language.artifacts`, English by default).
 
         Plan quality bar. Make the plan SDD-driven: accurately work on API
         contracts, DB migrations and system-analytics improvement/creation —
@@ -110,6 +123,10 @@ nodes:
     action:
       prompt: |
         @skill:aif-implement
+
+        HANDOFF_MODE=1 — the skill's own unattended mode: no Handoff MCP calls,
+        no pause prompts, auto-commit at checkpoints; the plan is found by the
+        branch name.
 
         Unattended node: execute the plan end to end — every task, every
         expectation, every acceptance criterion — resolving open points from
@@ -157,6 +174,13 @@ nodes:
         green; a red suite is a finding: classify each failure as obsolete
         (delete it, with the reason) or broken (fix it). Report counts from the
         real runs, not adjectives.
+
+        Answers to the skill's own questions: no plan artifact → "Verify branch
+        diff" against the base branch; context drift → do not capture, report
+        it; issues found → report them in the Verification Report and the
+        aif-gate-result and finish — never "Fix now", "Fix directly" or "Accept
+        as-is" (the flow's fix and review nodes own that); additional checks →
+        skip.
     input:
       requires:
         - artifact: impl-diff
@@ -178,12 +202,14 @@ nodes:
       workspace: rewind-to-node-checkpoint
     action:
       prompt: |
-        @skill:aif-review
+        @skill:aif-review +check
 
-        Review scope (overrides the skill's staged-only default): all changes in
-        this branch over the project base branch (`git.base_branch` from
-        `.ai-factory/config.yaml`) — committed commits since the merge base plus
-        the working tree, including untracked files.
+        Review scope — this replaces the skill's argument routing (no staged-only
+        default): all changes in this branch over the project base branch
+        (`git.base_branch` from `.ai-factory/config.yaml`) — committed commits
+        since the merge base plus the working tree, including untracked files.
+        Answers to the skill's own questions: more than 20 commits → review all
+        of them.
 
         Review specs and analytics for completeness, logical-holes absence and
         consistency, clear expectations, contracts and acceptance-criteria
@@ -243,9 +269,12 @@ nodes:
         questions the chosen implementation, design choices, trade-offs and
         assumptions — not just a stricter pass over defects. Stay read-only.
 
-        Review scope: all changes in this branch over the project base branch
+        Review scope — this replaces the skill's argument routing (no staged-only
+        default): all changes in this branch over the project base branch
         (`git.base_branch` from `.ai-factory/config.yaml`) — committed commits
         since the merge base plus the working tree, including untracked files.
+        Answers to the skill's own questions: more than 20 commits → review all
+        of them.
 
         Review specs and analytics for completeness, logical-holes absence and
         consistency, clear expectations, contracts and acceptance-criteria
@@ -333,6 +362,9 @@ nodes:
       prompt: |
         @skill:aif-fix
 
+        HANDOFF_MODE=1 with an empty HANDOFF_TASK_ID — the skill's own unattended
+        mode: fix-now with a regression check, no Handoff MCP calls.
+
         Unattended node: address the findings below, resolving open points from
         the plan and the codebase and recording assumptions in the fix summary.
         Tool-use permissions are handled by the platform.
@@ -341,9 +373,10 @@ nodes:
         or the human reviewer):
         {{ review_comments }}
 
-        Findings marked `[cross-review]` come from the independent second agent:
-        verify each against the code first, fix the confirmed ones, and state
-        the refuting evidence for every rejected finding in your summary.
+        Verify every finding against the code before acting on it — those
+        marked `[cross-review]` come from the independent second agent and need
+        this scrutiny most: fix the confirmed ones and state the refuting
+        evidence for every rejected finding in your summary.
 
         Regression-first where a finding is behavioral: reproduce it with a
         failing test, then fix; keep the change surgical and the suites green.
@@ -366,6 +399,10 @@ nodes:
         the changes mix concerns, following the plan's Commit Plan when present.
         This node ends at a clean tracked tree; MAIster owns push, merge and
         promotion, so no push or branch operations.
+
+        Answers to the skill's own questions: a Commit Plan in the active plan →
+        follow it; proposed message → commit as is; unrelated work mixed in the
+        staged changes → split as suggested; push to remote → no.
     pre_finish:
       gates:
         - id: commit-gate

@@ -10,7 +10,9 @@ design note for the v3 line:
 - **Provenance:** AI Factory `2.19.0` (git tag `2.19.0`, Apache-2.0); skills
   (incl. their `tests/`) + subagents vendored under `packages/aif/capability/`
   with two MAIster patches (`maister:output` routing block in `aif-review`,
-  `model: opus` for the Explore subagents in `aif-plan` / `aif-fix`).
+  `model: opus` for the Explore subagents in `aif-plan` / `aif-fix` and for
+  the `commit-preparer`, `docs-auditor`, `loop-critic`, `loop-orchestrator`
+  subagents).
   Originally extracted from the MAIster repo (`plugins/aif @ maister@c104f66b`,
   2026-06-12).
 - **Pin:** git tag `aif/vX.Y.Z` (current line `aif/v3.0.0`).
@@ -20,7 +22,7 @@ design note for the v3 line:
 | flow id | Shape | route_when |
 | ------- | ----- | ---------- |
 | `aif-dev` | intake(form) → plan_consensus(claude + codex drafts, cross-verified, synthesized) → plan → improve → plan_review⛛ → implement → checks → code_review(judge) → cross_review(judge, codex) → review⛛ → commit; judge/cross-review "fix" → fix → checks; human rework → fix; takeover → checks | A feature/enhancement/refactor that deserves a second independent opinion on the plan and the diff. |
-| `aif-dev-light` | intake → plan (emits the Plan-review pair itself) → plan_review⛛ → implement → checks → code_review → review⛛ → commit | A small/clear feature on one agent. |
+| `aif-dev-light` | intake → plan (emits the Plan-review pair itself) → plan_review⛛ → implement → checks → code_review(judge) → review⛛ → commit; judge "fix" → fix → checks; human rework → fix; takeover → checks | A small/clear feature on one agent. |
 | `aif-autonomous` | intake → plan → implement → checks → code_review(judge) → cross_review(judge, codex) → commit; loop exhaustion → escalation⛛ | A well-specified task delivered without mid-flow reviews. |
 | `aif-bugfix` | fix → checks → code_review(judge) → cross_review(judge, codex) → review⛛ → commit; judge/cross-review "fix" → fix; emits a self-improvement patch | A reported bug/error/regression. |
 | `aif-evolve` | evolve → review⛛ → commit (mutation gate on `.ai-factory/**`,`.claude/**`) | Periodic: distill fix-patches into better skills. |
@@ -60,10 +62,14 @@ Distilled from the flow owner's MAIster working sessions (2026-07 → 2026-09):
   findings actually get produced.
 - **One ACP session per phase**: planning, implementation, verification (+
   judge), cross-review, fix and commit never share a session.
-- **Unattended contract instead of "do NOT ask"**: every node states where
-  human input enters (form intake, plan review, human review), records
-  assumptions in its artifact, and turns blocking choices into typed
-  Plan-review decisions written in the project's `language.ui`.
+- **Unattended contract instead of "do NOT ask"**: planning, implementation
+  and fix nodes run the skills in their own Handoff mode (`HANDOFF_MODE=1`,
+  prepared branch → plan named after the branch, no interactive prompts, no
+  Handoff MCP); `aif-verify` / `aif-review` / `aif-commit` get their questions
+  answered in the prompt. Every node states where human input enters (form
+  intake, plan review, human review), records assumptions in its artifact,
+  and turns blocking choices into typed Plan-review decisions written in the
+  project's `language.ui` (PlanReviewV1 shape given in the prompt).
 
 ## Capability bundle
 
@@ -80,12 +86,15 @@ entry.
 
 ## Reconciliation with MAIster
 
-- **Git ownership.** AIF ships a default `.ai-factory/config.yaml`
-  (`config/ai-factory.config.yaml`, regenerated from the 2.19.0 template) with
-  MAIster-compat overrides — most importantly **`git.create_branches: false`**:
+- **Git ownership.** MAIster writes `git.enabled: true`,
+  **`git.create_branches: false`** and `git.base_branch` into the run
+  worktree's `.ai-factory/config.yaml` (skip-worktree, never committed):
   MAIster owns the worktree and branch, so AIF works git-aware but must not
-  create its own branch. All committing is deferred to `/aif-commit` on the
-  terminal `commit` node; push, merge and promotion stay with MAIster.
+  create its own branch. `config/ai-factory.config.yaml` (regenerated from
+  the 2.19.0 template with the same overrides) is the reference a project
+  copies to set language and paths. All committing is deferred to
+  `/aif-commit` on the terminal `commit` node; push, merge and promotion stay
+  with MAIster.
 - **Interactivity → HITL.** Preferences (`form`), plan decisions (typed
   `plan_review`), review verdicts (`human`) and tool permissions are delivered
   by MAIster-native HITL; the AIF `AskUserQuestion` tool is disabled by the

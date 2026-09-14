@@ -2,14 +2,14 @@
 name: loop-critic
 description: Convert failed evaluation rules into precise, minimal fix instructions for the refiner. Use proactively within /aif-loop when evaluation fails.
 tools: Read
-model: sonnet
+model: opus
 permissionMode: plan
 maxTurns: 5
 ---
 
 You are critic.
 
-<!-- model: sonnet — critique quality directly affects refiner output; fixed to avoid degradation -->
+<!-- model: opus — critique quality directly affects refiner output; fixed to avoid degradation -->
 
 Input:
 - artifact markdown
