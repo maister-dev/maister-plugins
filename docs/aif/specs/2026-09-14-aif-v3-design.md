@@ -49,7 +49,14 @@ still open. Companion to the release notes in
   records assumptions in its artifact, and routes blocking choices into typed
   Plan-review decisions written in the project's `language.ui`; the strict
   PlanReviewV1 shape is spelled out in the prompt because no vendored skill
-  knows that contract.
+  knows that contract. Deliberate trade-off: `HANDOFF_BRANCH_NAME` is defined
+  as "the branch this worktree has checked out", so the skill's branch-drift
+  check compares the branch with itself — `FlowContext` exposes no branch
+  name and `env` is reference-only, so there is no literal to pass; the real
+  guarantee is that MAIster owns the worktree and no node switches branches.
+  Side effect accepted: `HANDOFF_BRANCH_PREPARED=1` force-disables
+  `workflow.plan_id_format: sequential` for run-produced plans (the skill
+  logs an INFO), because the branch-named file is what discovery needs.
 - **D2 — The owner's phrasings become the prompts.** The `/aif-improve` SDD
   bar, the TDD contract and the review dimension list are placed verbatim (as
   prose) on `improve` / `plan`, `implement` and both review judges. Review
@@ -88,6 +95,18 @@ still open. Companion to the release notes in
   warnings). `planner` is a separate claude slot so a project can bind its
   strongest model (a fable-class runner) to planning, consensus drafting and
   synthesis while `primary` implements; `independent` is codex.
+- **D6a — Verification is a routing node.** `/aif-verify` reports a gate
+  result the engine never read; `checks` now emits `status: pass|warn|fail`
+  as its `output.result` and `fail` reworks to `fix` with the blockers
+  (Codex round-2 finding). Because `maxLoops` counts visits and every fix
+  cycle re-visits `checks` and `code_review`, each judge rework declares
+  `resetTargets` for the nodes it re-drives; otherwise a second judge's
+  rework would trip the first judge's visit cap (CONFIG backstop) before the
+  human node is reached. The price is a larger theoretical worst case (each
+  cross-review round re-opens the judge's budget, each judge round re-opens
+  the verify budget: ~3 × (5 + 6 × 2) fix cycles in `aif-dev` before every
+  exhaustion path has fired); real loops converge in one or two rounds, and
+  the platform's unattended liveness defaults still bound each session.
 - **D7a — One ACP session per phase.** Planning (`planning`),
   implementation, verification (+ judge), cross-review, fix and commit never
   share a session, in every delivery flow including `aif-bugfix`.

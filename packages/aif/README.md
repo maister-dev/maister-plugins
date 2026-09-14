@@ -37,6 +37,12 @@ vendored bundle moves to upstream **ai-factory 2.19.0**, and `aif-dev`,
   plan drafts to `planner` (claude) and `independent` (codex), cross-verifies
   them on five material axes, and synthesizes one agreed plan; `plan`
   materializes it (inline artifact injection) through `/aif-plan full`.
+- **Verification routes.** `checks` (`/aif-verify`) emits a structured
+  `status: pass|warn|fail` mirroring its gate result; `fail` reworks to `fix`
+  with the blockers (bounded, exhaustion → human) instead of riding into
+  review as prose nobody consumes. Judge and cross-review reworks open a
+  fresh epoch (`resetTargets`) for the nodes they re-drive, so a second
+  judge can never trip the first one's visit cap before the human is reached.
 - **One ACP session per phase, everywhere.** Planning (`planning` session on
   the `planner` slot), implementation, verification (+ judge), cross-review,
   fix and commit never share a session; `aif-bugfix` gets the same split.

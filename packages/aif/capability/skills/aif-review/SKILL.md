@@ -277,6 +277,10 @@ it mirrors the `aif-gate-result` findings input:
 Put a concise, actionable summary of exactly what the next fix must address (the
 critical issues, or the residual suggestions) in `review_comments`.
 
+With `+check`, `recommendation` mirrors the post-validator `aif-gate-result`
+(the filtered, possibly reclassified findings); on the whole-dispatch failure
+path it mirrors the unfiltered list, exactly like the gate result.
+
 ```json maister:output
 {
   "recommendation": "fix",

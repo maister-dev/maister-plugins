@@ -222,7 +222,8 @@ nodes:
         "decisions":[{"id":"…","question":"…","options":[{"id":"…","label":"…","consequences":"…"}],"recommendation":"<option id>","blocking":true}]}
         — ids match `^[a-z][a-z0-9_-]{0,63}$` and are unique across assumptions
         and decisions; 2-8 options per decision; up to 50 assumptions and 25
-        decisions.
+        decisions; `title` and every `label` ≤ 200 characters, `statement`,
+        `impact` and `question` ≤ 4000, `consequences` ≤ 1000, none empty.
     output:
       produces:
         - id: plan-document
@@ -270,9 +271,11 @@ nodes:
       prompt: |
         @skill:aif-implement
 
-        HANDOFF_MODE=1 — the skill's own unattended mode: no Handoff MCP calls,
-        no pause prompts, auto-commit at checkpoints; the plan is found by the
-        branch name.
+        HANDOFF_MODE=1
+        HANDOFF_SKIP_REVIEW=0
+        — the skill's own unattended mode (both values passed explicitly, as its
+        detector requires): no Handoff MCP calls, no pause prompts, auto-commit
+        at checkpoints; the plan is found by the branch name.
 
         Unattended node: execute the approved plan end to end — every task,
         every expectation, every acceptance criterion — resolving open points
@@ -323,20 +326,47 @@ nodes:
 
         Answers to the skill's own questions: no plan artifact → "Verify branch
         diff" against the base branch; context drift → do not capture, report
-        it; issues found → report them in the Verification Report and the
-        aif-gate-result and finish — never "Fix now", "Fix directly" or "Accept
-        as-is" (the flow's fix and review nodes own that); additional checks →
-        skip.
+        it; issues found → choose none of the four options ("Fix now", "Fix
+        critical only", "Fix directly here", "Accept as-is"): report them in
+        the Verification Report and the aif-gate-result and finish — the flow's
+        fix and review nodes own the fixing; additional checks → skip.
+
+        End your response with a single fenced `json maister:output` block that
+        mirrors your aif-gate-result: {"status":"pass|warn|fail","review_comments":"..."}
+        — "fail" when the gate result is fail (a failed required check or a
+        blocking context gate; the flow then fixes and re-verifies), otherwise
+        "pass" or "warn"; put the concrete blockers the next fix must address in
+        review_comments.
     input:
       requires:
         - artifact: impl-diff
           kind: diff
+    # Verification routes on its own structured status (ADR-103): a failed
+    # required check or a blocking context gate goes back to `fix` with the
+    # blockers, instead of riding into review as prose nobody consumes.
     output:
+      result:
+        schema: ./schemas/verify-outcome.json
+        required: true
+        on_mismatch: retry
       produces:
         - id: aif-gate-result
           kind: test_report
+    decide:
+      from: output.status
     transitions:
-      success: code_review
+      pass: code_review
+      warn: code_review
+      fail: fix
+      exhausted: review
+    rework:
+      allowedTargets: [fix]
+      workspacePolicies: [keep]
+      # Two consecutive red verifications in one epoch already warrant a human.
+      maxLoops: 2
+      session_policy: new_session
+      commentsVar: review_comments
+      onExhaustion: exhausted
 
   - id: code_review
     type: judge
@@ -398,6 +428,9 @@ nodes:
       session_policy: new_session
       commentsVar: review_comments
       onExhaustion: exhausted
+      # Every fix cycle re-visits `checks`; a judge-driven rework opens a fresh
+      # epoch for it so its own visit cap never fires before this loop's does.
+      resetTargets: [checks]
 
   # Adversarial second opinion by the independent coding agent. Its findings
   # are verified by the fix node before anything is changed.
@@ -464,6 +497,10 @@ nodes:
       # `[cross-review]` marker.
       commentsVar: review_comments
       onExhaustion: exhausted
+      # A cross-review rework re-drives fix → checks → code_review: open a fresh
+      # epoch for both so their visit caps count per cross-review round and
+      # exhaustion always reaches the human node instead of the CONFIG backstop.
+      resetTargets: [checks, code_review]
 
   - id: review
     type: human
@@ -503,7 +540,7 @@ nodes:
       session_policy: new_session
       # ADR-118: a human rework re-baselines both review loops' attempt
       # counters → fresh maxLoops budgets with the reviewer's new guidance.
-      resetTargets: [code_review, cross_review]
+      resetTargets: [checks, code_review, cross_review]
 
   - id: fix
     type: ai_coding
@@ -517,8 +554,12 @@ nodes:
       prompt: |
         @skill:aif-fix
 
-        HANDOFF_MODE=1 with an empty HANDOFF_TASK_ID — the skill's own unattended
-        mode: fix-now with a regression check, no Handoff MCP calls.
+        HANDOFF_MODE=1
+        HANDOFF_TASK_ID: empty (no plan annotation)
+        HANDOFF_SKIP_REVIEW=0
+        — the skill's own unattended mode (all three values passed explicitly, as
+        its detector requires): fix-now with a regression check, no Handoff MCP
+        calls.
 
         Unattended node: address the findings below, resolving open points from
         the plan and the codebase and recording assumptions in the fix summary.

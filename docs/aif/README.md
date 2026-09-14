@@ -21,7 +21,7 @@ design note for the v3 line:
 
 | flow id | Shape | route_when |
 | ------- | ----- | ---------- |
-| `aif-dev` | intake(form) → plan_consensus(claude + codex drafts, cross-verified, synthesized) → plan → improve → plan_review⛛ → implement → checks → code_review(judge) → cross_review(judge, codex) → review⛛ → commit; judge/cross-review "fix" → fix → checks; human rework → fix; takeover → checks | A feature/enhancement/refactor that deserves a second independent opinion on the plan and the diff. |
+| `aif-dev` | intake(form) → plan_consensus(claude + codex drafts, cross-verified, synthesized) → plan → improve → plan_review⛛ → implement → checks → code_review(judge) → cross_review(judge, codex) → review⛛ → commit; checks "fail" / judge / cross-review "fix" → fix → checks; human rework → fix; takeover → checks | A feature/enhancement/refactor that deserves a second independent opinion on the plan and the diff. |
 | `aif-dev-light` | intake → plan (emits the Plan-review pair itself) → plan_review⛛ → implement → checks → code_review(judge) → review⛛ → commit; judge "fix" → fix → checks; human rework → fix; takeover → checks | A small/clear feature on one agent. |
 | `aif-autonomous` | intake → plan → implement → checks → code_review(judge) → cross_review(judge, codex) → commit; loop exhaustion → escalation⛛ | A well-specified task delivered without mid-flow reviews. |
 | `aif-bugfix` | fix → checks → code_review(judge) → cross_review(judge, codex) → review⛛ → commit; judge/cross-review "fix" → fix; emits a self-improvement patch | A reported bug/error/regression. |
@@ -51,7 +51,9 @@ Distilled from the flow owner's MAIster working sessions (2026-07 → 2026-09):
   against real seams; SOLID / KISS / DRY and project conventions; surgical
   diffs; docs in the same increment; commits at checkpoints.
 - **Verification never weakens a suite**: failures are classified obsolete
-  (delete) or broken (fix); counts, not adjectives.
+  (delete) or broken (fix); counts, not adjectives. `checks` routes on its
+  own `status` (`schemas/verify-outcome.json`): `fail` → `fix`, so a red
+  gate can never reach the reviewers unaddressed.
 - **Both reviews cover the whole branch over the base branch**: specs and
   analytics completeness, logical holes and consistency, clear expectations,
   contracts and acceptance criteria, test coverage / triviality / overlap, UX
@@ -69,7 +71,10 @@ Distilled from the flow owner's MAIster working sessions (2026-07 → 2026-09):
   answered in the prompt. Every node states where human input enters (form
   intake, plan review, human review), records assumptions in its artifact,
   and turns blocking choices into typed Plan-review decisions written in the
-  project's `language.ui` (PlanReviewV1 shape given in the prompt).
+  project's `language.ui` (PlanReviewV1 shape given in the prompt). Note:
+  the prepared-branch contract force-disables `workflow.plan_id_format:
+  sequential` for plans these flows write — they are named after the run
+  branch, which is how the consuming skills find them.
 
 ## Capability bundle
 
@@ -136,14 +141,17 @@ entry.
   `no_logical_holes`, `scope_minimal_and_complete`), `rounds: iterate, max 2`,
   `on_no_consensus: escalate`, synthesizer `planner`; outputs `consensus_plan`
   (plan) + `debate_log` (human_note); `plan` consumes `consensus_plan` inline.
-- Review loops: `code_review` (`maxLoops: 5`; `3` in bugfix) and
-  `cross_review` (`maxLoops: 3`) route on `output.recommendation`
-  (`fix | commit`, schema `schemas/review-outcome.json`) and both inject the
-  judge's `review_comments` into the shared `review_comments` var (the engine
+- Loops: `checks` (`maxLoops: 2`, `output.status` `pass|warn|fail`,
+  `on_mismatch: retry`), `code_review` (`maxLoops: 5`; `3` in bugfix) and
+  `cross_review` (`maxLoops: 3`) route on their structured output
+  (`schemas/verify-outcome.json`, `schemas/review-outcome.json`) and inject
+  their `review_comments` into the shared `review_comments` var (the engine
   injects `vars[commentsVar]`, so the var name must equal the output key);
-  cross-review findings carry a `[cross-review]` marker. Exhaustion routes to
-  the human `review` (`escalation` in autonomous), whose rework resets both
-  counters.
+  cross-review findings carry a `[cross-review]` marker. `maxLoops` counts
+  visits, so each judge rework opens a fresh epoch for the nodes it re-drives
+  (`resetTargets`: code_review → checks; cross_review → checks, code_review;
+  human review → all three). Exhaustion routes to the human `review`
+  (`escalation` in autonomous).
 - `verdict_calibration.confidence_min: 0.7` (advisory `ai_judgment` review
   gate). Human review rework offers `[keep, rewind-to-node-checkpoint]`,
   `maxLoops: 3`; `review` adds a `takeover` decision (returns at `checks`).
