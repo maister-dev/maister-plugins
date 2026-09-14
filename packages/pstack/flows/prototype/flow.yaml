@@ -18,8 +18,10 @@ runner_profiles:
   independent:
     capability_agent: codex
     effort: high
+# 3.8.0: the engine renders the consensus `prompt` for the draft participants;
+# below it they receive `{{ task.prompt }}` as literal text.
 compat:
-  engine_min: 3.7.0
+  engine_min: 3.8.0
 defaults:
   session_policy: resume
 sessions:

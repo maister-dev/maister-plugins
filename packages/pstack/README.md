@@ -17,6 +17,15 @@ versioned independently with `pstack/vX.Y.Z` tags.
 - Adaptations: only the `poteto-mode`, `make-bot-ui`, and `comment-sicko`
   identifiers were normalized for portable skill loaders.
 
+## What changed in `pstack/v1.1.0`
+
+`pstack-feature`, `pstack-investigate` and `pstack-prototype` require MAIster
+engine `>= 3.8.0`: their `consensus` nodes interpolate `{{ task.prompt }}`
+into the draft prompt, and only the 3.8.0 engine renders a consensus prompt
+for the draft participants — on earlier engines they received the template
+text literally. The other five flows stay at `3.7.0`. No skill, agent or
+graph change otherwise.
+
 ## Flows
 
 | Flow                   | Purpose                                                                | Human gate                     |
@@ -74,13 +83,15 @@ evidence.
 packages:
   - id: pstack
     source: github.com/<org>/maister-plugins
-    version: pstack/v1.0.0
+    version: pstack/v1.1.0
     path: packages/pstack
 ```
 
 All flows require MAIster engine `>= 3.7.0` for portable runner profiles,
-consensus, typed results, and package-level result profiles. `setup.sh` is an
-inert no-op because capability materialization supplies the skills and agents.
+consensus, typed results, and package-level result profiles; the three
+consensus flows (`pstack-feature`, `pstack-investigate`, `pstack-prototype`)
+require `>= 3.8.0` for the rendered consensus prompt. `setup.sh` is an inert
+no-op because capability materialization supplies the skills and agents.
 
 The architecture mapping and extension boundary are documented in
 [`../../docs/pstack/README.md`](../../docs/pstack/README.md).
