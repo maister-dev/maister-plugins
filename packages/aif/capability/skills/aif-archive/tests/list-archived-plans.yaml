@@ -14,7 +14,7 @@ skill: aif-archive
 argument: "list"
 
 runner:
-  model: claude-opus-4-8
+  model: claude-sonnet-4-6
   permission_mode: bypassPermissions
   allowed_tools_override:
     - Read

@@ -12,7 +12,7 @@ skill: aif-archive
 argument: "0003_feature-search"
 
 runner:
-  model: claude-opus-4-8
+  model: claude-sonnet-4-6
   permission_mode: bypassPermissions
   allowed_tools_override:
     - Read

@@ -42,15 +42,19 @@ Bash: printenv HANDOFF_SKIP_REVIEW || true
 **When `HANDOFF_MODE` is `1`** (autonomous Handoff agent):
 
 The Handoff coordinator already manages status transitions and DB writes directly. Do NOT call MCP tools. Skip all interactive prompts and use defaults.
+If requirement reconciliation returns `handoff_outcome: blocked_external`, stop
+dispatch, propagate `blocker: requirement-conflict`, leave or restore the task
+to pending, and never signal `review` or `done`. Treat this separately from a
+worker failure: do not mark the task failed or merge or commit its layer.
 
 **When `HANDOFF_MODE` is NOT `1`** (manual Claude Code session):
 
-After reading the plan file, extract the Handoff task ID from the `<!-- handoff:task:<id> -->` annotation on the first line (if present). If no annotation exists, skip all MCP sync — there is no linked Handoff task.
+After reading the plan entrypoint, extract the Handoff task ID from the `<!-- handoff:task:<id> -->` annotation on the first line (if present). For ultra, the entrypoint is `index.md`. If no annotation exists, skip all MCP sync — there is no linked Handoff task.
 
 If a task ID IS found in the plan annotation, sync with Handoff via MCP tools:
 
 - **On start (before first task dispatch):** Call `handoff_sync_status` with `{ taskId: <extracted-id>, newStatus: "implementing", sourceTimestamp: "<current UTC time in ISO 8601 format>", direction: "aif_to_handoff", paused: true }`.
-- **After each layer completes:** Read the updated plan file and call `handoff_push_plan` with `{ taskId: <extracted-id>, planContent: <full plan text> }` to sync checklist progress.
+- **After each layer completes:** Read the updated plan artifact and call `handoff_push_plan` to sync checklist progress. Fast/full send the single file. Ultra sends `index.md` followed by every linked phase file in Phase Index order, each prefixed with `<!-- ultra-phase:<relative-path> -->`.
 - **On completion (all tasks done):** Call `handoff_push_plan` with the final plan, then:
     - If `HANDOFF_SKIP_REVIEW` is `1`: call `handoff_sync_status` with `{ taskId: <extracted-id>, newStatus: "done", sourceTimestamp: "<current UTC time in ISO 8601 format>", direction: "aif_to_handoff", paused: false }`.
     - Otherwise: call `handoff_sync_status` with `{ taskId: <extracted-id>, newStatus: "review", sourceTimestamp: "<current UTC time in ISO 8601 format>", direction: "aif_to_handoff", paused: true }`.
@@ -68,18 +72,36 @@ At the very start of your first turn, before doing anything else:
 ## Input
 
 The user may provide:
-- `@<path>` — explicit plan file (e.g. `@.ai-factory/plans/feature-auth.md`). Highest priority.
+- `@<path>` — explicit plan file, ultra directory, or ultra `index.md` (e.g. `@.ai-factory/plans/feature-auth.md` or `@.ai-factory/plans/feature-billing`). Highest priority.
 - A description of what to implement — used only if no plan exists yet (stop and ask user to create one first).
 - Nothing — auto-detect plan from branch or fallback.
 
 ## Plan parsing
 
-1. Locate the active plan (same priority as `/aif-implement`):
-   a. If the user provided an explicit `@<path>` argument, use that file.
-   b. Check current git branch (`git branch --show-current`), convert to filename (replace `/` with `-`, add `.md`), look for `.ai-factory/plans/<branch-name>.md`.
-   c. Fall back to `.ai-factory/PLAN.md`.
-   d. If none of the above exist but `.ai-factory/FIX_PLAN.md` exists — stop and tell the user to run `/aif-fix` instead (fix plans have their own workflow).
-   e. If no plan file found at all — stop and report.
+1. Read `.ai-factory/config.yaml` when present and resolve `paths.plan`,
+   `paths.plans`, `paths.fix_plan`, `workflow.plan_id_format`, and git settings.
+   Locate the active plan using the exact `/aif-implement` priority:
+   a. If the user provided `@<path>`, accept a markdown file, ultra directory,
+      or ultra `index.md`. Before normalizing a directory or treating an
+      explicit `index.md` as ultra, Read it and require exactly one
+      `<!-- aif:plan-mode:ultra -->`; otherwise STOP with a plan-integrity error.
+   b. Derive the current branch stem by replacing `/` with `-`. Under
+      `sequential`, glob both `[0-9]{4}_<stem>.md` and
+      `[0-9]{4}_<stem>/index.md`; Read every directory candidate, retain only
+      those with exactly one ultra marker, and choose the highest valid prefix.
+      Warn when multiple valid candidates exist, preferring ultra if both shapes
+      share the highest prefix. If none resolve,
+      or sequential mode is inactive, check `<stem>/index.md` and `<stem>.md`;
+      Read the directory entrypoint first and prefer it only when it contains
+      exactly one marker.
+   c. If no branch artifact exists, count named root full files and direct child
+      `*/index.md` files containing `<!-- aif:plan-mode:ultra -->`; exclude resolved fast/fix
+      paths and never count phase files. Use it only when exactly one exists.
+   d. Fall back to resolved `paths.plan`.
+   e. If only resolved `paths.fix_plan` exists — stop and tell the user to run
+      `/aif-fix` instead. If no plan artifact is found — stop and report.
+   An unrelated directory `index.md` is not a plan; malformed declared-ultra
+   bundles are blocking integrity errors.
 2. Parse all tasks from the plan. Each task has:
     - number (e.g. `Task 1`)
     - description
@@ -89,10 +111,17 @@ The user may provide:
 3. Build a dependency graph from `(depends on ...)` annotations.
 4. Tasks without explicit dependencies within the same phase are assumed independent.
 5. Tasks in a later phase implicitly depend on ALL tasks in preceding phases unless explicit dependencies say otherwise.
+6. If the entrypoint contains `<!-- aif:plan-mode:ultra -->`, validate every Phase Index link,
+   reject escaping/broken/orphan files, and map every task to exactly one
+   `## Task N` section. Read a task's complete phase file before dispatching it.
+   `index.md` remains the only task-status source.
 
 ## Plan annotation
 
-After building the dependency graph, annotate the plan file with parallelism information and keep it updated throughout execution.
+After building the dependency graph, annotate the plan entrypoint with
+parallelism information and keep it updated throughout execution. For ultra,
+edit only `index.md`; never add status checkboxes or parallel markers to phase
+files.
 
 ### Before execution: add parallelism markers
 
@@ -124,8 +153,12 @@ When dispatching a task to a worker, change its checkbox from `[ ]` to `[~]` and
 ### Timing
 
 - Write parallelism markers once after plan parsing, before the first dispatch.
-- Update task status in the plan file immediately before dispatching each layer and immediately after collecting results.
-- This ensures the plan file always reflects the current state — if the session crashes, the user sees exactly which tasks were in flight.
+- Run the `aif-implement` requirement consistency gate for every ready task
+  before changing `[ ]` to `[~]` or dispatching it. On an autonomous conflict,
+  leave the task pending and return `handoff_outcome: blocked_external` with
+  `blocker: requirement-conflict`.
+- Update task status in the plan entrypoint immediately before dispatching each layer and immediately after collecting results.
+- This ensures the progress source (`index.md` for ultra) always reflects the current state — if the session crashes, the user sees exactly which tasks were in flight.
 
 ## Execution algorithm
 
@@ -135,12 +168,20 @@ while remaining is not empty:
     ready = tasks in remaining whose dependencies are all completed
     if len(ready) == 0:
         ERROR: circular dependency or missing prerequisite — stop and report
+    run requirement consistency preflight for every ready task before status changes
+    if any preflight returns handoff_outcome: blocked_external:
+        leave every blocked task pending and stop with blocker: requirement-conflict
+    mark ready tasks in progress
     if len(ready) == 1:
         implement the task directly (see "Single-task execution" below)
     if len(ready) > 1:
         launch `implement-worker` for EACH ready task in parallel
     wait for all workers to finish
     collect results: successes, failures, warnings
+    if any result has handoff_outcome: blocked_external:
+        restore every unmerged task in this layer to pending
+        do not merge or commit the layer
+        stop with Status: blocked_external and Blocker: requirement-conflict
     if any worker failed:
         stop and report — do not advance to next layer
     mark completed tasks
@@ -158,15 +199,17 @@ Repo-specific rules:
 
 Workflow for single-task execution:
 1. Identify the single target task.
-2. Implement the target task using direct tool calls (Read, Write, Edit, Glob, Grep, Bash).
-3. Run one `aif-verify`-compatible verification pass scoped to the changed files.
-4. Launch read-only quality sidecars in background on the changed scope:
+2. Run the injected `aif-implement` requirement consistency gate. Do not mark
+   the task in progress or edit files until it passes.
+3. Implement the target task using direct tool calls (Read, Write, Edit, Glob, Grep, Bash).
+4. Run one `aif-verify`-compatible verification pass scoped to the changed files.
+5. Launch read-only quality sidecars in background on the changed scope:
     - `review-sidecar` — correctness, regression, performance risks — **skip if `HANDOFF_SKIP_REVIEW=1`**
     - `security-sidecar` — security audit — **skip if `HANDOFF_SKIP_REVIEW=1`**
     - `rules-sidecar` — project rules compliance check — **skip if `HANDOFF_SKIP_REVIEW=1`; this is intentional because Handoff uses that flag as a broad review-family bypass**
     - `best-practices-sidecar` — maintainability problems
-5. Near completion, also launch `docs-auditor` and `commit-preparer` to assess follow-ups.
-6. Feed only material findings back into the next refinement round:
+6. Near completion, also launch `docs-auditor` and `commit-preparer` to assess follow-ups.
+7. Feed only material findings back into the next refinement round:
     - verification failures
     - build/test/lint failures
     - security issues
@@ -174,25 +217,30 @@ Workflow for single-task execution:
     - clear architecture/rules violations
     - concrete best-practice problems in changed code
     - any verdict-style sidecar result with `Verdict: FAIL`; treat `Verdict: WARN` as non-blocking unless it identifies an explicit hard blocker
-7. If a material blocker remains, fix and re-verify (max 2 refinement rounds).
-8. Do not loop forever on cosmetic advice alone.
+8. If a material blocker remains, fix and re-verify (max 2 refinement rounds).
+9. Do not loop forever on cosmetic advice alone.
 
 ## Parallel dispatch rules
 
 - For parallel dispatch, ALWAYS use `implement-worker` (worktree isolation prevents file conflicts).
 - Pass each worker exactly ONE task. Include:
     - the task number and description
-    - the plan file path
+    - the normalized plan entrypoint path
+    - for ultra, the matching phase file path and complete Task N specification
     - `docs_policy: skip` and `commit_policy: skip` (coordinator handles these centrally)
 - When launching parallel workers, make ALL Agent calls in a single message to ensure true concurrency.
 
 ## Merge strategy
 
 After parallel workers complete:
-1. Review each worker's summary for conflicts (overlapping files modified).
-2. If no conflicts: merge worktree branches sequentially into the working branch.
-3. If conflicts detected: stop, report the conflict, and ask the user how to proceed.
-4. Run a single verification pass (`/aif-verify` equivalent) on the merged result.
+1. Check every worker result for `handoff_outcome: blocked_external` before
+   normal failure or conflict handling. If present, restore all unmerged layer
+   tasks to `[ ]`, do not merge or commit any branch from that layer, and return
+   `blocker: requirement-conflict` unchanged.
+2. Review each worker's summary for conflicts (overlapping files modified).
+3. If no conflicts: merge worktree branches sequentially into the working branch.
+4. If conflicts detected: stop, report the conflict, and ask the user how to proceed.
+5. Run a single verification pass (`/aif-verify` equivalent) on the merged result.
 
 ## Commit handling
 
@@ -243,7 +291,7 @@ Completed: N
 Failed: N
 Layers executed: N (M parallel, K sequential)
 Commits created: N
-Status: complete | partial | failed
+Status: complete | partial | failed | blocked_external
 Remaining tasks: [list if any]
 
 ⏎ This agent session is complete. Please close it (Ctrl+C or /exit)
@@ -251,3 +299,7 @@ Remaining tasks: [list if any]
   Do NOT use /clear — it resets context but keeps the agent session alive,
   which wastes tokens and may cause confusion.
 ```
+
+For `blocked_external`, also emit `Blocker: requirement-conflict`. Do not run
+post-implementation gates, final commits, plan pushes, or `review` / `done`
+status transitions for that blocked layer.
