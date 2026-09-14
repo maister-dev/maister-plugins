@@ -29,10 +29,11 @@ runner_profiles:
     capability_agent: codex
     effort: high
 # consensus node (1.9.0), artifact body injection (2.2.0), typed Plan-review
-# (3.1.0), flow-level `reentry` (3.5.0); pinned to the 3.7.0 engine this
-# package release was validated against.
+# (3.1.0), flow-level `reentry` (3.5.0), and — the binding one — the consensus
+# `prompt` rendered with the run context for the draft participants (3.8.0):
+# below that engine the drafters would receive `{{ task.prompt }}` literally.
 compat:
-  engine_min: 3.7.0
+  engine_min: 3.8.0
 # An operator rework claim (ADR-160) re-enters the graph at `checks`, so a
 # locally corrected tree is re-verified and re-reviewed before it can commit.
 reentry: checks
@@ -99,7 +100,7 @@ nodes:
       Prefer the smallest complete change that satisfies the acceptance
       criteria; follow SOLID, KISS, DRY and the project's code conventions.
     participants:
-      - { id: primary-draft, runner: planner }
+      - { id: planner-draft, runner: planner }
       - { id: independent-draft, runner: independent }
     workspace:
       mode: repo_read
@@ -396,7 +397,9 @@ nodes:
         End your response with a single `maister:output` block per the skill's
         "Native flow routing output" section: recommend "fix" when there is any
         CRITICAL finding, or "commit" when there are none. Put every finding the
-        fix node must verify in review_comments.
+        fix node must verify in review_comments and start that text with the
+        marker `[cross-review]` — the fix node verifies marked findings against
+        the code before acting on them.
     input:
       requires:
         - artifact: impl-diff
@@ -416,7 +419,12 @@ nodes:
       workspacePolicies: [keep]
       maxLoops: 3
       session_policy: new_session
-      commentsVar: cross_review_comments
+      # Shares `review_comments` with the judge and the human reviewer: the
+      # engine injects the judge's own `review_comments` output var under the
+      # rework commentsVar (vars[commentsVar]), so the var name must equal the
+      # aif-review output key. Cross-review findings are told apart by their
+      # `[cross-review]` marker.
+      commentsVar: review_comments
       onExhaustion: exhausted
 
   - id: review
@@ -475,13 +483,13 @@ nodes:
         the plan and the codebase and recording assumptions in the fix summary.
         Tool-use permissions are handled by the platform.
 
-        Findings from the review loop or the human reviewer:
+        Findings to address (from the judge review, the adversarial cross-review
+        or the human reviewer):
         {{ review_comments }}
 
-        Findings from the adversarial cross-review by the independent agent —
+        Findings marked `[cross-review]` come from the independent second agent:
         verify each against the code first, fix the confirmed ones, and state
-        the refuting evidence for every rejected finding in your summary:
-        {{ cross_review_comments }}
+        the refuting evidence for every rejected finding in your summary.
 
         Regression-first where a finding is behavioral: reproduce it with a
         failing test, then fix; keep the change surgical and the suites green.

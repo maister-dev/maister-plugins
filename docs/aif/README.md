@@ -108,10 +108,11 @@ entry.
   running MAIster instance binds each slot (exact intent match, else the
   project's default runner of that capability, else an explicit per-project
   binding).
-- `compat.engine_min`: `3.7.0` for `aif-dev`, `aif-dev-light`,
-  `aif-autonomous`, `aif-bugfix` (consensus, artifact injection, typed
-  Plan-review, `reentry`); `2.0.0` for `aif-evolve`, `aif-roadmap`,
-  `aif-init`, `aif-loop`, `aif-qa`. `defaults.session_policy: resume`.
+- `compat.engine_min`: `3.8.0` for `aif-dev` (consensus prompt rendered with
+  the run context for the drafters), `3.7.0` for `aif-dev-light`,
+  `aif-autonomous`, `aif-bugfix` (artifact injection, typed Plan-review,
+  `reentry`); `2.0.0` for `aif-evolve`, `aif-roadmap`, `aif-init`,
+  `aif-loop`, `aif-qa`. `defaults.session_policy: resume`.
 - `reentry: checks` on the four delivery flows — an operator rework claim
   (ADR-160) re-verifies and re-reviews before commit.
 - Sessions (ADR-114): `planning` on `planner` (dev, dev-light, autonomous);
@@ -124,13 +125,16 @@ entry.
   axes (`intent_and_acceptance_criteria_explicit`,
   `contracts_migrations_docs_covered`, `task_breakdown_complete_and_ordered`,
   `no_logical_holes`, `scope_minimal_and_complete`), `rounds: iterate, max 2`,
-  `on_no_consensus: escalate`, synthesizer `primary`; outputs `consensus_plan`
+  `on_no_consensus: escalate`, synthesizer `planner`; outputs `consensus_plan`
   (plan) + `debate_log` (human_note); `plan` consumes `consensus_plan` inline.
 - Review loops: `code_review` (`maxLoops: 5`; `3` in bugfix) and
-  `cross_review` (`maxLoops: 3`, `cross_review_comments`) route on
-  `output.recommendation` (`fix | commit`, schema
-  `schemas/review-outcome.json`); exhaustion routes to the human `review`
-  (`escalation` in autonomous), whose rework resets both counters.
+  `cross_review` (`maxLoops: 3`) route on `output.recommendation`
+  (`fix | commit`, schema `schemas/review-outcome.json`) and both inject the
+  judge's `review_comments` into the shared `review_comments` var (the engine
+  injects `vars[commentsVar]`, so the var name must equal the output key);
+  cross-review findings carry a `[cross-review]` marker. Exhaustion routes to
+  the human `review` (`escalation` in autonomous), whose rework resets both
+  counters.
 - `verdict_calibration.confidence_min: 0.7` (advisory `ai_judgment` review
   gate). Human review rework offers `[keep, rewind-to-node-checkpoint]`,
   `maxLoops: 3`; `review` adds a `takeover` decision (returns at `checks`).

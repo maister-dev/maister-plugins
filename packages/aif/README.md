@@ -10,7 +10,8 @@ Versioned by per-package git tags: `aif/vX.Y.Z` (see the repo root README).
 
 ## What changed in `aif/v3.0.0`
 
-A major bump: the engine floor of the delivery flows moves to **3.7.0**, the
+A major bump: the engine floor of the delivery flows moves to **3.7.0**
+(**3.8.0** for `aif-dev`), the
 vendored bundle moves to upstream **ai-factory 2.19.0**, and `aif-dev`,
 `aif-autonomous` and `aif-bugfix` now need two coding agents. Design note:
 [`docs/aif/specs/2026-09-14-aif-v3-design.md`](../../docs/aif/specs/2026-09-14-aif-v3-design.md).
@@ -27,8 +28,9 @@ vendored bundle moves to upstream **ai-factory 2.19.0**, and `aif-dev`,
 - **Review by two different agents.** After the claude judge (`code_review`)
   a `cross_review` judge on the `independent` (codex) runner runs an
   adversarial second review in `aif-dev`, `aif-autonomous` and `aif-bugfix`;
-  its findings travel in `cross_review_comments` and are verified by the
-  `fix` node before anything changes. A human rework re-baselines both loops.
+  its findings travel in the shared `review_comments` under a `[cross-review]`
+  marker and are verified by the `fix` node before anything changes. A human
+  rework re-baselines both loops.
   `aif-dev-light` stays single-agent by design.
 - **`aif-dev` plans by consensus.** A `plan_consensus` node fans out read-only
   plan drafts to `planner` (claude) and `independent` (codex), cross-verifies
@@ -62,11 +64,12 @@ vendored bundle moves to upstream **ai-factory 2.19.0**, and `aif-dev`,
   regression-first prompt, per-phase sessions.
 - **`reentry: checks`** on `aif-dev`, `aif-dev-light`, `aif-autonomous`,
   `aif-bugfix` (ADR-160 rework claims re-verify before commit).
-- Engine floors: the four delivery flows `3.7.0`; `aif-evolve`, `aif-init`,
-  `aif-roadmap`, `aif-loop`, `aif-qa` keep `2.0.0` (profile/prompt edits only).
-- Requires the MAIster fix that renders a consensus node's `prompt` with the
-  run context (`{{ task.prompt }}`, intake vars) before drafts launch; on an
-  older engine the drafters would receive the literal template text.
+- Engine floors: `aif-dev` `3.8.0` — the engine that renders a consensus
+  node's `prompt` with the run context (`{{ task.prompt }}`, intake vars)
+  before the drafts launch; below it the drafters would receive the literal
+  template text. `aif-dev-light`, `aif-autonomous`, `aif-bugfix` `3.7.0`;
+  `aif-evolve`, `aif-init`, `aif-roadmap`, `aif-loop`, `aif-qa` keep `2.0.0`
+  (profile/prompt edits only).
 
 ## What changed in `aif/v2.6.0`
 

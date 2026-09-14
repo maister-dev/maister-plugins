@@ -66,10 +66,14 @@ still open. Companion to the release notes in
   `/aif-plan full`, so the typed Plan-review pair is produced by `improve`
   exactly as before.
 - **D6 — Cross-review findings are verified, not applied.** `cross_review`
-  writes to its own `cross_review_comments`; the `fix` prompt verifies each
-  finding against the code, fixes the confirmed ones and states refuting
-  evidence for the rest — the owner's observed practice with codex reviews.
-  A human rework resets both loop counters.
+  emits the skill's `review_comments` prefixed with `[cross-review]` into the
+  shared `review_comments` var; the `fix` prompt verifies each marked finding
+  against the code, fixes the confirmed ones and states refuting evidence for
+  the rest — the owner's observed practice with codex reviews. A separate
+  `cross_review_comments` var was rejected by review: the engine injects the
+  judge's output var named exactly like the rework `commentsVar`
+  (`vars[commentsVar] ?? vars.comments`), so a differently named var would
+  arrive empty. A human rework resets both loop counters.
 - **D7 — Runner intent only, three slots.** Profiles are `capability_agent`
   + `effort`; the model/adapter pins are gone (the previous
   `claude-opus-4-8` pin never matched the host and only produced resolution
@@ -79,7 +83,10 @@ still open. Companion to the release notes in
 - **D7a — One ACP session per phase.** Planning (`planning`),
   implementation, verification (+ judge), cross-review, fix and commit never
   share a session, in every delivery flow including `aif-bugfix`.
-- **D8 — Engine floor 3.7.0 on the four delivery flows; `reentry: checks`.**
+- **D8 — Engine floors: 3.8.0 on `aif-dev`, 3.7.0 on the other delivery
+  flows; `reentry: checks`.** `aif-dev` depends on the consensus prompt being
+  rendered for the drafters, which only the 3.8.0 engine guarantees (D10);
+  a 3.7.0 floor would admit an engine that forwards the literal template.
   Meta flows keep `2.0.0`. Hooks/limits are not declared: the platform
   applies its unattended liveness defaults.
 - **D9 — Vendor from the upstream git tag, re-apply two patches.** The git
@@ -87,11 +94,16 @@ still open. Companion to the release notes in
   `maister:output` routing block in `aif-review` (required by the judge
   nodes) and `model: opus` for Explore subagents in `aif-plan` / `aif-fix`
   (a deliberate local edit; upstream still says `sonnet`).
-- **D10 — Engine gap fixed in MAIster.** A consensus node's `prompt` reached
-  draft participants unrendered (`{{ task.prompt }}` as literal text) while
-  verifier and synthesizer prompts were rendered. MAIster now renders the
-  draft prompt against the run context before launching drafts (strict:
-  unknown variable → `CONFIG`, no draft created). Without it, D5 cannot work.
+- **D10 — Engine gap fixed in MAIster, versioned as 3.8.0.** A consensus
+  node's `prompt` reached draft participants unrendered (`{{ task.prompt }}`
+  as literal text) while verifier and synthesizer prompts were rendered.
+  MAIster now renders the draft prompt against the run context before
+  launching drafts (strict: unknown variable → `CONFIG`, no draft created),
+  scans consensus prompts for `{{ artifacts.<id>.content }}` like any other
+  prompt, and bumps `MAISTER_ENGINE_VERSION` to `3.8.0` so a package can
+  require the behavior. Without it, D5 cannot work. pstack's consensus
+  prompts already use `{{ task.prompt }}` at `engine_min: 3.7.0`; they work
+  on 3.8.0 and should raise their floor in their next release.
 
 ## Verification done
 
