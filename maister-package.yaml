@@ -1,4 +1,4 @@
 schemaVersion: 1
-name: e2efplmu5rehem
+name: e2efplmu5rehemfork
 flows:
-  - { id: e2efplmu5rehem-flow, path: flows/e2e-flow }
+  - { id: e2efplmu5rehem-flow-fork, path: flows/e2e-flow }
