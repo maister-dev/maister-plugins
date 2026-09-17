@@ -1,0 +1,11 @@
+schemaVersion: 1
+name: e2efplmu5rl5ex-flow
+compat:
+  engine_min: 3.0.0
+nodes:
+  - id: s1
+    type: cli
+    action:
+      command: echo hi
+    transitions:
+      success: done
