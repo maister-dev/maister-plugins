@@ -1,1 +1,1 @@
-fork readme edit
+merged readme: fork + v2
