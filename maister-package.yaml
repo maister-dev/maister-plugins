@@ -1,4 +1,4 @@
 schemaVersion: 1
-name: e2efplmublexkg
+name: e2efplmublexkgfork
 flows:
-  - { id: e2efplmublexkg-flow, path: flows/e2e-flow }
+  - { id: e2efplmublexkg-flow-fork, path: flows/e2e-flow }
