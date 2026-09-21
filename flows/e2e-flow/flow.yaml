@@ -9,3 +9,4 @@ nodes:
       command: echo hi
     transitions:
       success: done
+# forked variant
