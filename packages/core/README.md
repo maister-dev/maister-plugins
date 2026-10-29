@@ -85,3 +85,23 @@ they are not listed separately in `maister-package.yaml`.
 
 Release with a `core/vX.Y.Z` tag. Existing MAIster installations must upgrade
 to that package revision before the new content is available to runs.
+
+
+### Operational intake compatibility
+
+The GitHub gh and MCP variants require engine **3.9.0 or later** and declare
+`kind: operational` / `completion.contract: operational_v1`. Source access,
+execution mode, tool approval, and completion are separate settings. Both retain
+normal permission decisions and their transport requirements. A complete scan
+with no new work finishes Done. Partial import, authorization failure, missing
+or malformed result, and unexpected source changes finish with actionable
+failure diagnostics; the platform preserves history/evidence and disposes the
+execution workspace without review or publication.
+
+Release the platform, its additive migrations and compatible workers first.
+Keep existing core pins until platform acceptance passes. Then qualify the exact
+core candidate (proposed unused tag `core/v1.4.0`) with the platform compatibility
+CLI and both transport fixtures before releasing it or changing attachment pins.
+Old engines must refuse this package; do not remove the floor to install it.
+Rollback requires draining operational runs and compatible cleanup/evidence
+owners; downgrading running workers alone is unsafe.
