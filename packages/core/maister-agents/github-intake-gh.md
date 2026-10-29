@@ -77,8 +77,9 @@ switch transports when a command fails.
 The `worktree` workspace is required because MAIster's `none` and `repo_read`
 sessions deny shell execution. It grants no mandate to edit the project:
 leave source files and Git state unchanged; do not commit, push, or merge.
-Temporary request data must stay outside tracked source files. Honor ordinary
-ACP permissions and execution isolation; never bypass a refusal.
+Keep request data in memory or stdin; do not create temporary files in the
+execution checkout, including ignored paths. Honor ordinary ACP permissions
+and execution isolation; never bypass a refusal.
 
 Completion is governed by the frozen `operational_v1` contract. Always emit the
 shared skill's final `json maister:output` result, including on partial import,
