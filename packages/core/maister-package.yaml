@@ -7,7 +7,7 @@ schemaVersion: 1
 name: core
 metadata:
   title: "MAIster Core"
-  summary: "First-party MAIster platform agents — Triager, Brain Improver, and Experiment Judge — plus shared core skills."
+  summary: "First-party MAIster platform agents — GitHub Issue Intake (gh/MCP), Triager, Brain Improver, and Experiment Judge — plus shared core skills."
   links:
     - { kind: docs, title: "Triage domain", url: "https://github.com/maister-dev/maister/blob/master/docs/system-analytics/triage.md" }
     - { kind: docs, title: "Platform agents", url: "https://github.com/maister-dev/maister/blob/master/docs/system-analytics/agents.md" }
@@ -16,8 +16,8 @@ metadata:
 flows: []
 capabilities:
   - { id: core-bundle, path: capability }
-# Core agents reach MAIster through the built-in facade; no package-shipped MCP
-# server templates are required.
+# Core agents use the built-in facade. The MCP intake variant also declares
+# the project-bound github-intake ref; no server or credentials ship here.
 mcps: []
 # Package-sourced Evaluation Methods (M46, ADR-143). `sdd-quality` is the default
 # Evaluation Lab method; it requires MAIster engine >= 3.2.0. Older MAIster

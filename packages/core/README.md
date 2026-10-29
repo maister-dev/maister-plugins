@@ -14,7 +14,65 @@ First-party platform agents and shared skills that ship with MAIster.
   planes ignore the `evaluationMethods` key. Content is inert until trusted and
   engine-compatible.
 - No flows or MCP server templates. Core agents use MAIster's built-in MCP
-  facade and ephemeral agent tokens.
+  facade and ephemeral agent tokens. The MCP intake variant additionally
+  requires a project-bound GitHub MCP.
+
+## GitHub issue intake
+
+Choose **one** agent per project/repository:
+
+| Agent | GitHub access | Prerequisite |
+| --- | --- | --- |
+| [`core:github-intake-gh`](maister-agents/github-intake-gh.md) | Host `gh` CLI | Authenticated CLI visible inside the agent session; no GitHub MCP needed. |
+| [`core:github-intake-mcp`](maister-agents/github-intake-mcp.md) | Project-bound GitHub MCP | Trusted `github-intake` MCP binding with issue read/comment tools. |
+
+Both use the packaged [github-issue-intake skill](capability/skills/github-issue-intake/SKILL.md)
+for duplicate checks, recovery, and handoff to `core:triager`. The shared skill
+is materialized from `core-bundle`; the definitions supply transport-specific
+operations. Both use the built-in MAIster MCP for tasks.
+
+After upgrading core, attach the chosen agent in Project Settings → Agents,
+and set `github_repository` (`OWNER/REPO`, github.com).
+`batch_size` defaults to 20; empty `import_created_since` includes existing open
+issues. The destination slug comes from the launch context.
+
+For the CLI variant, the session checks
+`gh auth status --active --hostname github.com` and reads the authenticated user. Existing host authentication can
+be reused if visible to that execution session; successful web-side cloning
+alone does not prove that. Allow the runner's shell/network operations and
+provide issue read/write access without putting a token in agent config.
+See the [gh API manual](https://cli.github.com/manual/gh_api).
+
+For the MCP variant, bind `github-intake` to a trusted GitHub MCP exposing
+`get_me`, `list_issues`, `search_issues`, `issue_read`, and `add_issue_comment`.
+Scope credentials to the repository with Issues read/write permission and keep
+secrets in host environment references. Neither variant silently switches to
+the other transport on failure.
+
+Both declare `workspace: worktree`: `none`/`repo_read` sessions deny shell
+execution and can reject external MCP write permissions. Worktree allocation
+and ordinary launch preconditions therefore apply, even though the agents must
+leave source files and Git state unchanged.
+
+Enable `core:triager` on `task.created` and `task.triage_requeued`, with
+`auto_enqueue: off` for planning-only intake and suitable project Flows enabled.
+The attach recommendation is hourly (`0 * * * *`, UTC); edit the binding to
+choose its timezone and runner. Start manually with `autoApply: off`; after
+checking effects, `permissions` permits unattended ACP tool approvals. The
+platform scheduler must be ticking.
+
+Keep only one variant and one cron binding enabled; avoid overlapping manual
+runs. Before switching variants, disable the old one and reconcile its pending
+receipts. Both variants use the same GitHub comment journal and task provenance;
+private memory is not required. A new import posts one pending comment and one
+completion comment; a duplicate posts only its completion comment. A prior
+pending marker without a matching task is held for operator review, including
+on a closed source. Verify the prior run before manually removing an orphan
+pending comment to re-arm intake. A different GitHub account requires review of
+prior receipts. Task provenance and verified GitHub comments reduce repeats,
+but do not add transactional external-ID uniqueness to MAIster. Ambiguous
+writes are held for operator review. Before enabling cron, check a new issue,
+a duplicate, a repeated run, and recovery between task creation and its receipt.
 
 ## Adding a skill
 

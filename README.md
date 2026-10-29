@@ -26,7 +26,7 @@ packages/
 | [`bmad-bmm`](packages/bmad-bmm/) | BMAD Method v6.11.0: planning, canonical Build, two compatibility flows, 44 upstream skills, runtime support, and 5 platform agents. |
 | [`bmad-tea`](packages/bmad-tea/) | BMAD Test Architect v1.24.0: 5 typed quality flows, 9 upstream skills, and Murat as a platform agent. |
 | [`bmad-cis`](packages/bmad-cis/) | BMAD CIS v0.3.2: a governed RAH discovery flow, 4 upstream workflow skills, and 6 creative platform agents. |
-| [`core`](packages/core/) | First-party platform agents for task triage, Project Brain improvement, and experiment evaluation, plus shared MAIster skills. |
+| [`core`](packages/core/) | First-party platform agents for GitHub issue intake (gh or MCP), task triage, Project Brain improvement, and experiment evaluation, plus shared MAIster skills. |
 | [`core-java`](packages/core-java/) | Java and JVM skills for builds, architecture, integration testing, performance analysis, and production diagnostics. |
 | [`core-react`](packages/core-react/) | React and TypeScript frontend skills for components, state and data flow, accessibility, testing, and performance. |
 | [`core-pg`](packages/core-pg/) | PostgreSQL skills for schema design, migrations, query tuning, indexing, transactions, reliability, and operations. |
