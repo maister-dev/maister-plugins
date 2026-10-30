@@ -105,3 +105,14 @@ CLI and both transport fixtures before releasing it or changing attachment pins.
 Old engines must refuse this package; do not remove the floor to install it.
 Rollback requires draining operational runs and compatible cleanup/evidence
 owners; downgrading running workers alone is unsafe.
+
+
+### Operational triager
+
+Triager also declares `kind: operational` and `operational_v1`. One task is one
+work item. Confirmed holds, duplicates and already-flagged no-ops are successful
+operations; incomplete mutations or runner/API failures are operational failures.
+Human asks use `reTriggerMode: agent`: the answer resumes the same run. Explicit
+human triage requeue remains available. The kind does not enable automatic tool
+approval, change the delivery Flow runner or publish source changes. New package
+pins apply only to new launches; existing runs retain their frozen contracts.
