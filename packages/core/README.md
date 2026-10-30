@@ -89,7 +89,7 @@ to that package revision before the new content is available to runs.
 
 ### Operational intake compatibility
 
-The GitHub gh and MCP variants require engine **3.9.0 or later** and declare
+The GitHub gh and MCP variants require engine **3.10.0 or later** and declare
 `kind: operational` / `completion.contract: operational_v1`. Source access,
 execution mode, tool approval, and completion are separate settings. Both retain
 normal permission decisions and their transport requirements. A complete scan
@@ -116,3 +116,23 @@ Human asks use `reTriggerMode: agent`: the answer resumes the same run. Explicit
 human triage requeue remains available. The kind does not enable automatic tool
 approval, change the delivery Flow runner or publish source changes. New package
 pins apply only to new launches; existing runs retain their frozen contracts.
+
+
+### Incoming qualification
+
+The candidate core requires engine 3.10.0 and explicit project qualification policy
+`required` before attach/enable/launch. Both importers declare the intake role and
+capture original source requests in Incoming. Triager declares the qualifier role,
+`repo_read` / `workspace_ref: task_target`, and inspects the frozen detached SHA with
+native read-only tools. It uses the shared task-qualification skill for all seven
+checks. It cannot run shell commands, edit source or bypass approvals. Missing
+runtime bug evidence stays needs_review; code inspection is not reproduction.
+
+Ready, needs_information, needs_review and not_actionable are assessment decisions,
+separate from operational outcomes. A held request may be successfully assessed.
+Candidates publish only on clean validated completion and never on partial failure.
+Local Human asks resume the same run. Current task/target revisions and delivery
+admission remain authoritative across edits, requeue, package upgrades and retries.
+Release platform/schema/MCP first, then this exact core candidate, then explicitly
+set project policy and upgrade attachment pins. No live credentials or provider
+configuration is shipped with the package.
