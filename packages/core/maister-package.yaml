@@ -5,6 +5,8 @@
 # file.
 schemaVersion: 1
 name: core
+compat:
+  engine_min: "3.10.0"
 metadata:
   title: "MAIster Core"
   summary: "First-party MAIster platform agents — GitHub Issue Intake (gh/MCP), Triager, Brain Improver, and Experiment Judge — plus shared core skills."

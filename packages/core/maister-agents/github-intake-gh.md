@@ -1,6 +1,12 @@
 ---
 name: GitHub Issue Intake (gh)
 description: "Imports GitHub issues through the authenticated host gh CLI, detects duplicates, and hands tasks to the project triager."
+kind: operational
+completion:
+  contract: operational_v1
+task_qualification:
+  contract: v1
+  role: intake
 workspace: worktree
 mode: session
 risk_tier: standard
@@ -74,5 +80,15 @@ switch transports when a command fails.
 The `worktree` workspace is required because MAIster's `none` and `repo_read`
 sessions deny shell execution. It grants no mandate to edit the project:
 leave source files and Git state unchanged; do not commit, push, or merge.
-Temporary request data must stay outside tracked source files. Honor ordinary
-ACP permissions and execution isolation; never bypass a refusal.
+Keep request data in memory or stdin; do not create temporary files in the
+execution checkout, including ignored paths. Honor ordinary ACP permissions
+and execution isolation; never bypass a refusal.
+
+Completion is governed by the frozen `operational_v1` contract. Always emit the
+shared skill's final `json maister:output` result, including on partial import,
+HTTP 403, missing capability, or an unknown write. A clean process exit or prose
+report does not complete an operation. Do not change source files or Git state.
+
+Load the packaged **task-qualification** skill as the shared quality boundary.
+Capture source requests in Incoming; the project qualifier alone assesses readiness.
+Import success never means accepted backlog or authorized implementation.
