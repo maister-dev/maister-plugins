@@ -100,7 +100,7 @@ execution workspace without review or publication.
 
 Release the platform, its additive migrations and compatible workers first.
 Keep existing core pins until platform acceptance passes. Then qualify the exact
-core candidate (proposed unused tag `core/v1.4.0`) with the platform compatibility
+core revision (`core/v1.4.0`) with the platform compatibility
 CLI and both transport fixtures before releasing it or changing attachment pins.
 Old engines must refuse this package; do not remove the floor to install it.
 Rollback requires draining operational runs and compatible cleanup/evidence
@@ -120,7 +120,7 @@ pins apply only to new launches; existing runs retain their frozen contracts.
 
 ### Incoming qualification
 
-The candidate core requires engine 3.10.0 and explicit project qualification policy
+Core `core/v1.4.0` requires engine 3.10.0 and explicit project qualification policy
 `required` before attach/enable/launch. Both importers declare the intake role and
 capture original source requests in Incoming. Triager declares the qualifier role,
 `repo_read` / `workspace_ref: task_target`, and inspects the frozen detached SHA with
@@ -133,6 +133,6 @@ separate from operational outcomes. A held request may be successfully assessed.
 Candidates publish only on clean validated completion and never on partial failure.
 Local Human asks resume the same run. Current task/target revisions and delivery
 admission remain authoritative across edits, requeue, package upgrades and retries.
-Release platform/schema/MCP first, then this exact core candidate, then explicitly
+Release platform/schema/MCP first, then core `core/v1.4.0`, then explicitly
 set project policy and upgrade attachment pins. No live credentials or provider
 configuration is shipped with the package.
