@@ -26,6 +26,7 @@ packages/
 | [`bmad-bmm`](packages/bmad-bmm/) | BMAD Method v6.11.0: planning, canonical Build, two compatibility flows, 44 upstream skills, runtime support, and 5 platform agents. |
 | [`bmad-tea`](packages/bmad-tea/) | BMAD Test Architect v1.24.0: 5 typed quality flows, 9 upstream skills, and Murat as a platform agent. |
 | [`bmad-cis`](packages/bmad-cis/) | BMAD CIS v0.3.2: a governed RAH discovery flow, 4 upstream workflow skills, and 6 creative platform agents. |
+| [`rah`](packages/rah/) | Native evidence research: bounded depth-1/depth-2 coordinator Flows, read-only researchers and a single-role control, with explicit source/confirmation limits and EN/RU installation guidance. |
 | [`core`](packages/core/) | First-party platform agents for GitHub issue intake (gh or MCP), task triage, Project Brain improvement, and experiment evaluation, plus shared MAIster skills. |
 | [`core-java`](packages/core-java/) | Java and JVM skills for builds, architecture, integration testing, performance analysis, and production diagnostics. |
 | [`core-react`](packages/core-react/) | React and TypeScript frontend skills for components, state and data flow, accessibility, testing, and performance. |
@@ -91,7 +92,10 @@ against the exact clean checkout before a tag exists:
 MAISTER_REPO=/path/to/mAIster ./scripts/release-package.sh aif v3.0.0
 ```
 
-The gate validates the package manifest, graph-only `nodes[]` manifests,
-compilation, engine range, package-root schema materialization, and a real
-Postgres-backed package install. MAIster engine changes run the same gate over
-every discoverable `<package>/vX.Y.Z` tag in this repository.
+The compatibility command validates the package manifest, graph-only `nodes[]`
+manifests and engine range. For `rah`, the wrapper also runs a real Postgres
+install/trust/enable qualification against the clean candidate bytes, including
+package-root schema materialization. These checks do not establish live ACP or
+stand-pilot readiness. Engine compatibility audits must consume each tagged
+revision's own bytes; passing a different tag label over the working tree does
+not validate that historical release.
