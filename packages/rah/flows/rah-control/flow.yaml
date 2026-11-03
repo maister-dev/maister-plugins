@@ -28,14 +28,20 @@ nodes:
     settings:
       agent: rah:evidence-researcher
       workspaceAccess: read
+      permissionMode: ask
       enforcement:
         tools: strict
-        workspaceAccess: strict
       tools:
         claude:
           - Read
           - Grep
           - Glob
+          - ToolSearch
+          - mcp__maister__knowledge_search
+          - mcp__maister__knowledge_get
+          - mcp__maister__knowledge_evidence
+          - mcp__maister__knowledge_conflicts
+          - mcp__maister__knowledge_witness_get
         codex:
           - shell
       limits:
