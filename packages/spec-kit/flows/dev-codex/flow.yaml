@@ -1,0 +1,369 @@
+schemaVersion: 1
+name: sk-dev-codex
+metadata:
+  title: "Spec Kit — Develop (Codex)"
+  summary: "Spec-driven feature end-to-end: specify -> clarify (HITL) -> plan -> tasks -> analyze -> implement -> code_review -> review (HITL) -> commit. Drives the Spec Kit $speckit-* Codex skills."
+  labels: [feature, enhancement, spec-driven, sdlc]
+  route_when: "Build a feature end-to-end via the GitHub Spec Kit SDLC with Codex (agreed spec + plan + tasks before code). Requires sk-init-codex."
+  links:
+    - { kind: framework, title: "Spec Kit", url: "https://github.com/github/spec-kit" }
+  sources:
+    - { component: "capability/reference/*", origin: "git:github.com/github/spec-kit@v0.10.3" }
+runner_profiles:
+  codex:
+    capability_agent: codex
+    effort: high
+# Typed artifacts -> engine_min >= 1.2.0; must_touch mutation gate -> >= 1.3.0;
+# retry/session policies -> >= 1.4.0; first-class sessions (M42, ADR-114) ->
+# >= 2.0.0. (`requirements` is additive, no floor.)
+compat:
+  engine_min: 2.0.0
+# Rework re-entry resumes the prior ACP session by default; the review->implement
+# loop overrides with session_policy: new_session for a clean re-implement.
+defaults:
+  session_policy: resume
+# M42 (ADR-114): first-class sessions split the reused agent context into
+# fresh-context phases. The spec-authoring chain (specify, clarify-apply, plan,
+# tasks, analyze) stays on the implicit `default` session — each $speckit-* phase
+# builds on the prior — while `implement` and `code_review` get fresh sessions.
+# All inherit the flow's one codex runner (no new runners); state flows
+# through the typed artifacts (feature-spec, impl-diff), not session memory. The
+# gate/cli nodes hold no agent session.
+sessions:
+  implement: { runner: codex }
+  code_review: { runner: codex }
+verdict_calibration:
+  confidence_min: 0.7
+# ADR-091: refuse launch before any worktree/session unless Spec Kit is present
+# AND scaffolded (run sk-init-codex first). The speckit skills must be committed on the
+# base branch so this run's worktree loads $speckit-* at session start. Probed in
+# the project repo.
+requirements:
+  - name: "specify CLI present"
+    probe: "command -v specify"
+    hint: "run the sk-init-codex flow first (it installs the specify CLI)"
+  - name: "Spec Kit scaffolded (.specify/)"
+    probe: "test -d .specify"
+    hint: "run the sk-init-codex flow first (specify init scaffolds .specify/)"
+  - name: "speckit skills present (.agents/skills/speckit-specify)"
+    probe: "test -d .agents/skills/speckit-specify"
+    hint: "run + promote sk-init-codex first so .agents/skills/speckit-* are committed on the base branch"
+nodes:
+  - id: specify
+    type: ai_coding
+    settings:
+      permissionMode: allow
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        [MAIster x Spec Kit — execution contract]
+        You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree already on the correct branch; the project is Spec-Kit-initialized (sk-init-codex ran). Drive Spec Kit through the concrete canonical skill mention named by each phase; MAIster normalizes it to Codex's native `$speckit-*` form at launch.
+        - AskUserQuestion is DISABLED — never ask the user. Where a speckit skill would ask clarifying questions, instead record each open question as a `[NEEDS CLARIFICATION: <question>]` marker in spec.md and proceed with a best-judgment assumption (documented under ## Assumptions). The flow surfaces these to a human at the clarify gate. Never block waiting for input.
+        - MAIster owns git + promotion: do NOT install the spec-kit `git` extension, do NOT run git checkout / branch / merge / push / open PRs, do NOT create worktrees. Do NOT commit — a later node commits.
+
+        THIS NODE — Specify (agree on WHAT before any HOW):
+        - Run @skill:speckit-specify with this feature description: {{ task.prompt }}
+        - It creates specs/NNN-<slug>/spec.md (+ checklists/requirements.md) by mkdir only — it must NOT create or switch a git branch.
+        - Write a complete spec (prioritized user scenarios with Given-When-Then, functional requirements FR-NNN, measurable success criteria SC-NNN). Use [NEEDS CLARIFICATION: …] markers for every genuine ambiguity instead of guessing silently. No placeholders.
+        - STOP after the spec is written; the next nodes validate it and surface clarifications to a human.
+
+        Clarification rework feedback from a prior pass (empty on first pass):
+        {{ clarify_answers }}
+    output:
+      produces:
+        - id: feature-spec
+          kind: generic_file
+    transitions:
+      success: spec-gate
+
+  # Deterministic existence backstop — a `check` node (no agent, no permission
+  # HITL). Targets the newest specs/<feature>/ (this run's feature).
+  - id: spec-gate
+    type: check
+    action:
+      command: |
+        d=$(ls -dt specs/*/ 2>/dev/null | head -1); test -n "$d" && test -f "${d}spec.md"
+    transitions:
+      success: clarify-extract
+
+  # Surface the open clarifications to the human reviewer — a `cli` node that
+  # prints the [NEEDS CLARIFICATION] markers from the spec to the step log.
+  # Always succeeds (informational); the human reads them + the spec diff next.
+  - id: clarify-extract
+    type: cli
+    action:
+      command: |
+        d=$(ls -dt specs/*/ 2>/dev/null | head -1); echo "[spec-kit] open clarifications in ${d}spec.md:"; grep -nE 'NEEDS CLARIFICATION' "${d}spec.md" || echo "  (none — spec is unambiguous)"
+    transitions:
+      success: clarify
+
+  - id: clarify
+    type: human
+    finish:
+      human:
+        role: maintainer
+        decisions: [approve, rework, takeover]
+        commentsVar: clarify_answers
+    transitions:
+      approve: clarify-apply
+      rework: specify
+      takeover: clarify-apply
+    rework:
+      allowedTargets: [specify]
+      workspacePolicies: [keep]
+      maxLoops: 3
+      commentsVar: clarify_answers
+
+  - id: clarify-apply
+    type: ai_coding
+    settings:
+      permissionMode: allow
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        [MAIster x Spec Kit — execution contract]
+        Non-interactive; isolated worktree on the correct branch; use the phase's concrete canonical skill mention; never ask the user; MAIster owns git (no branch/merge/push/PR); do NOT commit.
+
+        THIS NODE — Clarify (fold the human's answers into the spec):
+        - Run @skill:speckit-clarify to incorporate the answers below: update the spec's ## Clarifications section + any affected requirements/scenarios, and remove every resolved [NEEDS CLARIFICATION] marker.
+        - If the answers are empty (no clarification was needed), make no changes and proceed.
+        Human clarification answers:
+        {{ clarify_answers }}
+        - STOP after updating the spec.
+    transitions:
+      success: plan
+
+  - id: plan
+    type: ai_coding
+    settings:
+      permissionMode: allow
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        [MAIster x Spec Kit — execution contract]
+        Non-interactive; isolated worktree on the correct branch; use the phase's concrete canonical skill mention; never ask the user; MAIster owns git (no branch/merge/push/PR); do NOT commit.
+
+        THIS NODE — Plan (decide HOW):
+        - Run @skill:speckit-plan to produce the technical design from the clarified spec: plan.md plus research.md, data-model.md, contracts/ (ONLY if the feature exposes external interfaces), and quickstart.md. It runs the Constitution Check gate against .specify/memory/constitution.md.
+        - Resolve every remaining [NEEDS CLARIFICATION] (record decisions in research.md). If a Constitution Check violation is genuinely unavoidable, justify it in plan.md's Complexity Tracking — never silently violate a principle.
+        - STOP after the plan + design artifacts are written.
+    transitions:
+      success: plan-gate
+
+  - id: plan-gate
+    type: check
+    action:
+      command: |
+        d=$(ls -dt specs/*/ 2>/dev/null | head -1); test -f "${d}plan.md"
+    transitions:
+      success: tasks
+
+  - id: tasks
+    type: ai_coding
+    settings:
+      permissionMode: allow
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        [MAIster x Spec Kit — execution contract]
+        Non-interactive; isolated worktree on the correct branch; use the phase's concrete canonical skill mention; never ask the user; MAIster owns git (no branch/merge/push/PR); do NOT commit.
+
+        THIS NODE — Tasks (decompose the plan):
+        - Run @skill:speckit-tasks to generate specs/<feature>/tasks.md: dependency-ordered, user-story-grouped tasks, each line `- [ ] [TaskID] [P?] [Story?] <description with the exact file path>`.
+        - STOP after tasks.md is written.
+    transitions:
+      success: tasks-gate
+
+  - id: tasks-gate
+    type: check
+    action:
+      command: |
+        d=$(ls -dt specs/*/ 2>/dev/null | head -1); test -f "${d}tasks.md"
+    transitions:
+      success: analyze
+
+  - id: analyze
+    type: ai_coding
+    settings:
+      permissionMode: allow
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        [MAIster x Spec Kit — execution contract]
+        Non-interactive; isolated worktree on the correct branch; use the phase's concrete canonical skill mention; never ask the user; MAIster owns git (no branch/merge/push/PR); do NOT commit.
+
+        THIS NODE — Analyze (cross-artifact consistency; CRITICAL must not reach implement):
+        - Run @skill:speckit-analyze — a READ-ONLY cross-check of spec.md <-> plan.md <-> tasks.md <-> constitution. It prints a severity-tagged report (CRITICAL / HIGH / MEDIUM / LOW) to your output; it writes no file.
+        - For EVERY CRITICAL finding (a task with no backing requirement, a requirement absent from tasks, a constitution conflict, etc.), RESOLVE it at the source: edit the offending spec/plan/tasks file to make the artifacts consistent, then re-run @skill:speckit-analyze until ZERO CRITICAL remain. Do not expand scope; note each change you make.
+        - Emit the machine verdict as a single JSON object on its own line:
+          {"verdict":"pass"|"fail","confidence":0-1,"criticalRemaining":N,"reasons":[...]}
+          pass = zero CRITICAL remaining; fail = at least one CRITICAL remains.
+        - STOP after the analysis is clean (or after you have emitted a fail verdict).
+    output:
+      produces:
+        - id: analysis-judgment
+          kind: ai_judgment
+    pre_finish:
+      gates:
+        - id: no-critical-gate
+          kind: ai_judgment
+          mode: blocking
+          prompt: >
+            Based on the @skill:speckit-analyze results in this node's output, are there
+            any unresolved CRITICAL cross-artifact inconsistencies among spec.md,
+            plan.md, and tasks.md? Reply with a JSON object
+            {"verdict":"pass"|"fail","confidence":0-1,"reasons":[...]}.
+            pass = zero CRITICAL remaining; fail = at least one CRITICAL remains.
+    transitions:
+      success: implement
+
+  - id: implement
+    type: ai_coding
+    # M42: fresh context — builds from the analyzed spec/plan/tasks on disk.
+    session: implement
+    settings:
+      permissionMode: allow
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        [MAIster x Spec Kit — execution contract]
+        Non-interactive; isolated worktree on the correct branch; use the phase's concrete canonical skill mention; never ask the user; MAIster owns git (no branch/merge/push/PR); do NOT commit — a later node commits.
+
+        THIS NODE — Implement (build the feature):
+        - Run @skill:speckit-implement to execute tasks.md in dependency order: write the code honoring plan.md, data-model.md, contracts/, and the spec exactly. Check off each task (`- [X]`) as you finish it. Run the project's tests as you go and keep them green.
+        - @skill:speckit-implement halts if any checklists/*.md is incomplete — resolve per its guidance; never block on a user question.
+        - STOP after every task is implemented and checked off.
+
+        Review feedback from a prior review (empty on first pass):
+        {{ review_comments }}
+    output:
+      produces:
+        - id: impl-diff
+          kind: diff
+          requiredFor: [review, merge]
+    transitions:
+      success: verify
+
+  # Deterministic completion backstop — a `check` node: every task in the
+  # current feature's tasks.md must be checked off (no `- [ ]` lines remain).
+  - id: verify
+    type: check
+    action:
+      command: |
+        d=$(ls -dt specs/*/ 2>/dev/null | head -1); ! grep -qE '^[[:space:]]*- \[ \]' "${d}tasks.md"
+    input:
+      requires:
+        - artifact: impl-diff
+          kind: diff
+    transitions:
+      success: code-review
+
+  - id: code-review
+    type: ai_coding
+    # M42: fresh-eyes review session (the prompt also reads the diff fresh).
+    session: code_review
+    settings:
+      permissionMode: allow
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        [MAIster x Spec Kit — execution contract]
+        Non-interactive; isolated worktree on the correct branch; never ask the user; MAIster owns git (no branch/merge/push/PR); do NOT commit.
+
+        THIS NODE — Code review (implementation vs spec):
+        - Review the implementation diff against the spec / plan / tasks. Range: BASE = the run's base commit, HEAD = current worktree. Read the diff fresh; verify each task is actually implemented (not merely checked off) and matches the spec's requirements + acceptance scenarios.
+        - Emit the machine verdict as a single JSON object on its own line:
+          {"verdict":"pass"|"fail","confidence":0-1,"reasons":[...],"issues":[{"severity":"critical"|"important"|"minor","file":"...","note":"..."}]}
+        - Also write the full human-readable review (Strengths / Issues by severity / Assessment) to your output.
+    input:
+      requires:
+        - artifact: impl-diff
+          kind: diff
+    output:
+      produces:
+        - id: ai-judgment
+          kind: ai_judgment
+    transitions:
+      success: review
+
+  - id: review
+    type: human
+    input:
+      requires:
+        - artifact: ai-judgment
+          kind: ai_judgment
+    pre_finish:
+      gates:
+        - id: impl-diff-required
+          kind: artifact_required
+          mode: blocking
+          inputArtifacts: [impl-diff]
+        - id: ai-quality-advisory
+          kind: ai_judgment
+          mode: advisory
+          prompt: >
+            Assess the implementation diff against the feature spec, plan, and
+            tasks. Reply with a JSON object
+            {"verdict":"pass"|"fail","confidence":0-1,"reasons":[...]}.
+    finish:
+      human:
+        role: maintainer
+        decisions: [approve, rework, takeover]
+        commentsVar: review_comments
+    transitions:
+      approve: commit
+      rework: implement
+      takeover: verify
+    rework:
+      allowedTargets: [implement]
+      workspacePolicies: [keep, rewind-to-node-checkpoint]
+      maxLoops: 3
+      commentsVar: review_comments
+      # M42: each rework iteration re-enters `implement` on a fresh session.
+      session_policy: new_session
+
+  # Deterministic commit — a `cli` node. Earlier nodes left spec artifacts +
+  # code uncommitted, so this node's committed range is the whole feature
+  # (specs/ + source). The must_touch gate asserts the spec artifacts landed.
+  - id: commit
+    type: cli
+    action:
+      command: |
+        git add -A && git commit -m "feat: implement feature via Spec Kit"
+    pre_finish:
+      gates:
+        - id: specs-touched
+          kind: artifact_required
+          mode: blocking
+          must_touch: ["specs/**"]
+          output:
+            id: impl-mutation-report
+            kind: mutation_report
+        - id: tree-clean-gate
+          kind: command_check
+          mode: blocking
+          command: |
+            test -z "$(git status --porcelain --untracked-files=no)"
+    transitions:
+      success: done

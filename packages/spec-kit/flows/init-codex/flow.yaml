@@ -1,0 +1,130 @@
+schemaVersion: 1
+name: sk-init-codex
+metadata:
+  title: "Spec Kit — Init (Codex)"
+  summary: 'One-time: ensure the specify CLI, scaffold Spec Kit (specify init --integration codex --integration-options="--skills" → .specify/ + .agents/skills/speckit-*) + author the project constitution -> review -> commit.'
+  labels: [setup, onboarding, spec-driven]
+  route_when: "One-time for Codex projects: project not yet Spec-Kit-initialized (no .specify/ base)."
+  links:
+    - { kind: framework, title: "Spec Kit", url: "https://github.com/github/spec-kit" }
+  sources:
+    - { component: "capability/reference/*", origin: "git:github.com/github/spec-kit@v0.10.3" }
+runner_profiles:
+  codex:
+    capability_agent: codex
+    effort: high
+# must_touch mutation gate -> engine_min >= 1.3.0; retry/session -> >= 1.4.0.
+# Pinned to the M42 2.0.0 engine baseline for this package release (single
+# reused default session; no sessions: map needed).
+compat:
+  engine_min: 2.0.0
+defaults:
+  session_policy: resume
+# sk-init INSTALLS the specify CLI, so it must NOT require it present — it
+# requires only uv|pipx (to install it) + git. This is why `requirements` is
+# per-flow (ADR-091).
+requirements:
+  - name: "uv or pipx present (to install the specify CLI)"
+    probe: "command -v uv || command -v pipx"
+    hint: "install uv (https://docs.astral.sh/uv/) or pipx on the supervisor/web host"
+  - name: "git present"
+    probe: "command -v git"
+    hint: "install git on the supervisor/web host"
+nodes:
+  # Deterministic installer — a `cli` node (no agent, no permission HITL).
+  # Idempotent: installs the pinned specify CLI only if absent.
+  - id: ensure
+    type: cli
+    action:
+      command: "command -v specify >/dev/null 2>&1 || { command -v uv >/dev/null 2>&1 && uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@v0.10.3 || pipx install 'git+https://github.com/github/spec-kit.git@v0.10.3'; }"
+    transitions:
+      success: scaffold
+
+  # Deterministic scaffold — a `cli` node. `specify init` is fully
+  # non-interactive with these flags and uses bundled assets (no network). It
+  # writes .specify/ (memory/constitution.md, scripts, templates) + the Codex
+  # skills .agents/skills/speckit-*. It does NOT touch git: the branch-creating
+  # `before_specify` hook only exists in the opt-in `git` extension, which init
+  # never installs (verified vs v0.10.3). Running scaffold as a `cli` node (no
+  # agent session) guarantees the speckit skills are on disk BEFORE the first
+  # agent session (constitution) starts, so `$speckit-*` load from project
+  # `.agents/skills/` at session start.
+  - id: scaffold
+    type: cli
+    action:
+      command: 'specify init --here --force --integration codex --integration-options="--skills" --ignore-agent-tools'
+    pre_finish:
+      gates:
+        - id: skills-scaffolded
+          kind: command_check
+          mode: blocking
+          command: "test -d .specify && test -d .agents/skills/speckit-specify"
+    transitions:
+      success: constitution
+
+  - id: constitution
+    type: ai_coding
+    settings:
+      permissionMode: allow
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        [MAIster x Spec Kit — execution contract]
+        You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree already on the correct branch; Spec Kit was just scaffolded (.specify/ + .agents/skills/speckit-* exist).
+        - Drive Spec Kit through its Codex skills using MAIster's canonical mention: @skill:speckit-constitution (normalized to Codex's native `$speckit-constitution` form at launch).
+        - AskUserQuestion is DISABLED — never ask the user. Make best-judgment decisions from the repo + the brief below; corrections arrive via the HITL review gate.
+        - MAIster owns git + promotion: do NOT install the spec-kit `git` extension, do NOT run git checkout / branch / merge / push / PR, do NOT create worktrees. Do NOT commit — the commit node finalizes.
+
+        THIS NODE — Author the project constitution (one-time):
+        - Run @skill:speckit-constitution to create .specify/memory/constitution.md — the project's governing principles that every later phase (@skill:speckit-plan's Constitution Check, @skill:speckit-analyze) is held against.
+        - Ground it in REAL project context: explore the repo (stack, build/test commands, conventions, directory structure, domain) and encode concrete, enforceable principles + the governance/versioning footer. No placeholder principles. Extra direction: {{ task.prompt }}
+        - STOP after writing the constitution; the next node is human review.
+
+        Reviewer feedback from a prior review (empty on first pass):
+        {{ review_comments }}
+    transitions:
+      success: review
+
+  - id: review
+    type: human
+    finish:
+      human:
+        role: maintainer
+        decisions: [approve, rework]
+        commentsVar: review_comments
+    transitions:
+      approve: commit
+      rework: constitution
+    rework:
+      allowedTargets: [constitution]
+      workspacePolicies: [keep]
+      maxLoops: 3
+      commentsVar: review_comments
+
+  # Deterministic commit — a `cli` node. The scaffold + constitution were left
+  # uncommitted, so this node's committed range is the whole .specify/ +
+  # .agents/skills/speckit-* scaffold (the must_touch mutation gate asserts the
+  # .specify/ base landed). .agents/skills/speckit-* MUST be committed so the
+  # sk-dev-codex runs (which fork from this branch) load them at session start.
+  - id: commit
+    type: cli
+    action:
+      command: "git add -A && git commit -m 'chore(spec-kit): initialize spec-driven workflow'"
+    pre_finish:
+      gates:
+        - id: specify-touched
+          kind: artifact_required
+          mode: blocking
+          must_touch: [".specify/**"]
+          output:
+            id: init-mutation-report
+            kind: mutation_report
+        - id: tree-clean-gate
+          kind: command_check
+          mode: blocking
+          command: "test -z \"$(git status --porcelain --untracked-files=no)\""
+    transitions:
+      success: done
