@@ -27,6 +27,8 @@ Do not mutate repositories, restart services, launch unmanaged subagents, or inv
 If clarification is required, preserve the exact unresolved question in the finding rather than guessing.
 Return exactly one final fenced block labelled json maister:output. Its value must be evidence_findings_v1:
 {"schemaVersion":1,"findings":[],"knowledgeProposals":[],"selection":[]}.
+selection belongs only at the result root and stays empty because you collect no child results.
+Each finding.sourceFindings is empty; never add selection to a finding.
 Each finding has id, assertion, basis (observed or inferred), supporting and contradicting reference arrays,
 missingEvidence, limitations, openQuestions, and sourceFindings. Use at most eight findings.
 Use minimal exact references: {kind:"knowledge",id,revision}, {kind:"witness",id}, or {kind:"result",id,revision}.
