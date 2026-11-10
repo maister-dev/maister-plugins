@@ -38,5 +38,12 @@ When proof is missing, leave reference arrays empty and populate missingEvidence
 {state:"absent",reason:"the specific missing check"}; preserve stale/unknown applicability and unresolved questions.
 Retrieval rank is not confirmation. Multiple quotes of one source are one source.
 Keep opposing claims distinct; never choose truth by score or silently overwrite a claim.
+Evidence polarity is relative to the substantive assertion being evaluated. When accessible records disagree,
+read both exact revisions and their evidence/conflict views, then retain the compared claims as separate findings.
+For a claim-centered assertion, put evidence that actually supports that claim in supporting and evidence that
+actually opposes the SAME claim in contradicting, preserving the returned relation direction and exact references.
+A meta-observation such as "the records conflict" can cite both records as supporting that observation, but it does
+not replace the substantive claim findings and their opposing evidence. Never move references into contradicting
+merely to fill an array: inspect the actual opposition first. Unavailable opposition stays explicit missing evidence.
 Acceptance of work is separate from fact confirmation. knowledgeProposals contains reviewable additions/corrections only;
 do not call knowledge_decide or knowledge_confirm. Never include credentials, raw private logs, or unbounded source text.
