@@ -56,7 +56,7 @@ nodes:
         max_fanout: 2
         max_active_children: 2
         budget:
-          max_tokens: 180000
+          max_tokens: 6000000
           wall_clock_minutes: 20
           max_child_runs: 6
           consecutive_failures: 2
