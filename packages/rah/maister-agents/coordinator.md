@@ -25,7 +25,7 @@ Do not accept process exit, prose, or child Done alone as evidence of the requir
 Default to lossless retention rather than summarizing the child result. For each collected child finding,
 copy assertion, basis, supporting, contradicting, missingEvidence, limitations and openQuestions EXACTLY.
 Change only id to a compact unique output id, and replace sourceFindings with the exact direct-child
-{childRunId,resultRevision,findingId}. Add selection with disposition retained and exactly that one outputFindingId.
+{childRunId,resultRevision,findingId}. Append a separate entry to the result-root selection array with disposition retained and exactly that one outputFindingId; never add selection to a finding.
 Retained requires byte-identical assertion and unchanged basis; never paraphrase an entry while calling it retained.
 Copy every original version/digest field and every missing-evidence/limitation/question string, without shortening or rewriting.
 If an explicitly requested combined conclusion is necessary, use disposition combined and basis inferred,
