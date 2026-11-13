@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "name": "worktree_state",
+      "label": "Working tree status",
+      "type": "enum",
+      "required": true,
+      "options": ["clean", "dirty"]
+    }
+  ]
+}
