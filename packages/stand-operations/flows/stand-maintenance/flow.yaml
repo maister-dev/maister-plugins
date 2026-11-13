@@ -47,19 +47,50 @@ nodes:
         Work on the appointed assignment {{ assignment.id }}.
         Objective: {{ assignment.objective }}
         Input: {{ assignment.input }}
+        Use tool calls without assistant commentary. The adapter can stream adjacent assistant messages without a
+        separator; prose before the fenced result can make the result invalid. If any prose was already emitted
+        during this turn, begin the final output with a newline before its opening fence.
         Inspect assignment_get and its context before any action. Use the exact current business and input revisions.
-        The assignment must identify the configured component. Use assignment_question_ask when that selector is missing.
-        Retain one restart intent with a stable assignment/component/input-derived idempotency key and persist its
-        operation ID in assignment context. On resume use that ID. Read the exact runbook pin returned with the
+        Use the literal selector after "Component ID:" or the retained human clarification response.componentId.
+        Do not use the stand target ID, unit name or assignment ID as componentId. If neither selector is provided,
+        call assignment_question_ask with this assignmentId, current expectedRevision and inputRevision,
+        question "Which configured component should be maintained?", a stable idempotency key, and
+        schema {schemaVersion:1,fields:[{name:"componentId",label:"Component ID",type:"string",required:true}]}.
+        End the turn without a result after asking. On the next turn read the retained human answer supplied by
+        MAIster for this node, refresh assignment_get and use the new input revision before writing an intent.
+        The answer selects the component and confers no restart authority.
+        Retain one restart intent with a stable assignment/component/input-derived idempotency key. Record its ID in
+        assignment_context_update using the current context revision and input revision. Use the entry
+        {id:"restart-intent",kind:"work",state:"open",text:"Restart operation <id>",references:[]}.
+        Omit supersedesEntryId for a new entry. Refresh assignment_get after updating context. Use its new
+        assignment revision, input revision and context revision when delegating.
+        The operation ID belongs in text; references accepts only authorized Brain references. On resume read that entry
+        and use the same ID. Read the exact runbook pin returned with the
         operation, including its supporting witness. Call stand_operation_observe and stand_operation_logs.
-        For ambiguous symptoms delegate read-only diagnosis to stand-operations:diagnostic with mode run, workspace none,
-        resultProfile findings and the exact native assignmentWork selector. Give the child exact allowed evidence
-        and the current operation ID. Collect the existing child on resume and retain its original references.
-        For each child finding, preserve assertion, basis, evidence and limitations exactly, add sourceFindings with the
-        direct child Run ID, result revision and finding ID, and add the corresponding retained selection entry.
+        For ambiguous symptoms use run_delegate with target {agentId: "stand-operations:diagnostic"}, mode "run",
+        workspace "none", a diagnostic prompt and assignmentWork {selector, expectedOutcome}. The selector uses
+        schemaVersion 1, the current assignmentId, expectedRevision, inputRevision and contextRevision from
+        assignment_get, logicalWorkId "diagnose-stand" and workRevision 1. Give the child the current operation ID
+        and exact authorized runbook reference in the prompt. Native company work takes its result contract from the
+        reviewed child binding. Omit title, resultProfile, runnerOverride and persistent. Collect the existing child
+        on resume and read evidence from result.value.findings.findings, preserving its original references.
+        For delegation_execution_busy, retry run_delegate with the same operationKey after an assignment_get.
+        Keep one operationKey and one logical work revision for the same diagnostic. Use only the MAIster tools;
+        do not use Bash for waits or inspect the local environment.
         If the child is pending, end the turn without a final output. Never delegate the restart.
-        Accept usable child results with specialist_assignment_work_decide and the exact collected revisions.
-        Return the retained operation ID as {"operationId":"..."} in one final fenced json maister:output block.
+        For the single returned child c, accept only c.resultStatus == "valid". Call specialist_assignment_work_decide
+        with assignmentId=c.assignmentWork.assignmentId, workId=c.assignmentWork.id,
+        workRevision=c.assignmentWork.workRevision, expectedRevision=c.assignmentWork.revision,
+        inputRevision=c.assignmentWork.inputRevision, resultRevision=c.resultRevision, decision="accept", a short reason
+        and a stable idempotency key derived from the work ID and result revision. Do not use the assignment's business
+        revision or context revision for expectedRevision. The tool records the accepted finding lineage in working context.
+        Do not copy child results or references into assignment_context_update. After a successful acceptance, immediately
+        end the turn with exactly these three lines, replacing only the placeholder with the real operation ID:
+        ```json maister:output
+        {"operationId":"<exact retained operation ID>"}
+        ```
+        Copy the entire opening line, including the literal maister:output marker. The JSON object starts on line two.
+        The execute node owns reduction.
     output:
       result:
         schema: ./schemas/restart-intent.json
@@ -91,15 +122,39 @@ nodes:
         Get the exact current operation and its approvalState. The preceding human review advances this Flow;
         only a separate approval recorded on the exact operation digest authorizes dispatch. If approval is absent,
         report a blocked outcome. Never create another restart here.
-        Use stand_operation_dispatch only after the human grants exact approval. If the response is lost, use
-        stand_operation_get and keep the original ID. A pending/unknown effect requires human recovery. After the original
-        effect is confirmed applied, use stand_operation_verify and inspect the latest independently retained probe.
-        Declare success only after the expected effect and health are both present. Propose a reusable addition through
-        findings.knowledgeProposals with exact accessible citations when appropriate. Keep confirmation separate.
-        Return one final fenced block opened with ```json maister:output. Supply schemaVersion 2, outcome, summary,
+        Use stand_operation_dispatch only after the human grants exact approval. If the response is lost or reports
+        an error, use stand_operation_get for this same ID. A pending/unknown effect requires human recovery.
+        After the original effect is confirmed applied, use stand_operation_verify and inspect the latest independently
+        retained probe. Never dispatch again or infer success from the current health without the original effect receipt.
+        Read the accepted work entry from the supplied assignment context. If it has a childRunId, use run_collect with
+        that exact childRunId in this turn to copy the accepted result from its tool response, not from memory.
+        For each diagnostic finding, copy the JSON object verbatim. Change only sourceFindings to [{childRunId,
+        resultRevision, findingId}] using the collected result and the original finding id. In selection use "retained"
+        with that exact output id. Preserve the assertion verbatim even when it describes pre-action observations;
+        preserve every missingEvidence, limitation and openQuestion even when a later probe answers it.
+        Describe the new evidence separately in your own observation or proposal. Declare success only after the expected effect
+        and health are both present. Propose a reusable addition through
+        findings.knowledgeProposals using the exact runbook knowledge record and its source witness copied from the
+        collected diagnostic. In proposal evidence use only reference.kind "knowledge" (exact id and revision) or
+        "witness" (exact id); never put an operation ID, an effect receipt ID or a verification ID in proposal evidence.
+        The platform links the accepted operation and verification automatically at write-back. Keep confirmation separate.
+        Use tool calls without assistant commentary. Begin the final output with a newline if any prior prose was
+        emitted this turn. Return one final fenced block opened with ```json maister:output. Supply schemaVersion 2, outcome, summary,
         coverage {state,remainingKnown}, counts {scanned,attempted,completed,failed,skipped,created}, references,
         diagnostics, findings {schemaVersion:1,findings,knowledgeProposals,selection}, operationIds and verificationIds.
-        Cite only retained IDs. For a blocked result include an actionable diagnostic and explicit missing evidence.
+        Put Brain references only inside findings, and put the exact operation and verification IDs only in their
+        designated top-level arrays. A restart is an update, not a creation; a knowledge draft is not a published record.
+        For one confirmed and independently healthy restart, use this exact envelope, replacing the two IDs and
+        the findings object as explained above. Keep created at zero, references and diagnostics empty:
+        {"schemaVersion":2,"outcome":"success","summary":"The approved component restart was applied and independently verified healthy.","coverage":{"state":"complete","remainingKnown":0},"counts":{"scanned":1,"attempted":1,"completed":1,"failed":0,"skipped":0,"created":0},"references":[],"diagnostics":[],"findings":{"schemaVersion":1,"findings":[],"knowledgeProposals":[],"selection":[]},"operationIds":["<exact operation ID>"],"verificationIds":["<exact healthy verification ID>"]}
+        Replace the empty findings, knowledgeProposals and selection arrays in that example with the required evidence.
+        When an effect is unknown and the original operation is accessible,
+        use this exact blocked-result shape, retaining exact authorized child findings and naming the operation only in the summary:
+        ```json maister:output
+        {"schemaVersion":2,"outcome":"blocked","summary":"The restart response for <original operation ID> was lost. The effect has not been established.","coverage":{"state":"incomplete","remainingKnown":1},"counts":{"scanned":1,"attempted":0,"completed":0,"failed":0,"skipped":0,"created":0},"references":[],"diagnostics":[{"code":"effect_unknown","severity":"error","operation":"restart","message":"The original effect is unknown.","retryable":false,"remediation":"Reconcile the original operation before further action."}],"findings":{"schemaVersion":1,"findings":[],"knowledgeProposals":[],"selection":[]},"operationIds":[],"verificationIds":[]}
+        ```
+        Use the same counts and diagnostic fields for another blocked outcome, with the actual reason and next action.
+        Include only retained authorized operation and verification identities.
     output:
       result:
         schema: ./schemas/operational-evidence.v2.json
@@ -120,7 +175,7 @@ nodes:
         Assignment {{ assignment.id }}. The operator declined restart {{ steps.coordinate.vars.operationId }}.
         Perform no further action. Return exactly one json maister:output operational_evidence_v2 result with
         outcome blocked, incomplete coverage, zero completed operations, empty operationIds and verificationIds,
-        and one actionable warning. Retain any previous findings and their original references.
+        and one actionable error diagnostic. Retain any previous findings and their original references.
     output:
       result:
         schema: ./schemas/operational-evidence.v2.json

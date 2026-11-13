@@ -19,3 +19,12 @@ Requires MAIster engine 3.12.0 or later and a configured Linux stand helper.
 4. Проверьте ID операции и точный digest запроса в форме одобрения. Одобрите только нужный компонент и ревизию. После записи одобрения продолжите шаг авторизации во «Входящих». Уточнение недостающих данных изменяет входные данные до создания операции.
 5. После таймаута сверьте исходную операцию. Неизвестный эффект сохраняет блокировку ресурса. Уполномоченный оператор может осмотреть состояние и решить, оставить блокировку или разрешить новую операцию. У новой операции своё одобрение. Перед принятием задания проверьте отдельно сохранённый результат проверки здоровья.
 6. Рассматривайте предложение в Brain отдельно. Принятие задания само по себе не подтверждает утверждение.
+
+
+## Scheduled read-only inspection
+
+Bind `stand-operations:inspector` with `assignments:read`, `knowledge:read` and `targets:read`. In a reviewed company cron source, provide `standInspection: { targetId, componentId }` and the explicit recurring request. The source pins the current target and one enabled component. Review a new source if that configuration changes. The inspector records the configured health probe without restarting the service. Healthy unchanged results stay in assignment history. An unhealthy or inconclusive probe updates the existing incident for that resource.
+
+## Плановая проверка без изменений
+
+Привяжите `stand-operations:inspector` с правами `assignments:read`, `knowledge:read` и `targets:read`. В проверенной настройке расписания компании задайте `standInspection: { targetId, componentId }` и явный повторяющийся запрос. Настройка фиксирует текущую версию стенда и один включённый компонент. После изменения конфигурации заведите и проверьте новое расписание. Специалист сохраняет результат настроенной проверки здоровья без перезапуска. При штатном состоянии результат остаётся в истории задания. Сбой или неопределённый результат обновляет общий инцидент ресурса.
