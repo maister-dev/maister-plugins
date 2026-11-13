@@ -3,11 +3,22 @@
 The **[GitHub Spec Kit](https://github.com/github/spec-kit) spec-driven
 workflow for MAIster**. Wraps Spec Kit's SDLC
 (**constitution → specify → clarify → plan → tasks → analyze → implement**) as
-MAIster flows that drive the `specify` CLI and the `/speckit-*` Claude skills.
+MAIster flows that drive the `specify` CLI and its agent-native skills for
+Claude Code or Codex.
 
 Versioned by per-package git tags: `spec-kit/vX.Y.Z`. The **Spec Kit version is
-pinned to `github/spec-kit@v0.10.3`** in `setup.sh` and the `sk-init` flow's
+pinned to `github/spec-kit@v0.10.3`** in `setup.sh` and both init flows'
 installer.
+
+## Unreleased
+
+- Adds Codex-native `sk-init-codex` and `sk-dev-codex` flows without changing
+  the existing Claude Code flows.
+- `sk-init-codex` uses Spec Kit's bundled Codex integration with skills enabled,
+  which scaffolds `.agents/skills/speckit-*`; `sk-dev-codex` requires that
+  repository-native path and invokes the skills through `$speckit-*` mentions.
+- Both Codex flows declare a portable `capability_agent: codex` runner intent
+  rather than pinning an adapter, provider, or model.
 
 ## What changed in `spec-kit/v1.1.0`
 
@@ -28,73 +39,80 @@ runner config + first-class sessions):
 
 - **Framework**: Spec Kit — https://github.com/github/spec-kit (MIT). The
   `specify` CLI is installed at runtime; `specify init` scaffolds Spec Kit's
-  `.specify/` base + the `.claude/skills/speckit-*` skills into the project.
+  `.specify/` base plus Claude Code skills under `.claude/skills/` or Codex
+  skills under `.agents/skills/` into the project.
   `capability/reference/` documents the phases + the SKILL.md frontmatter as
   read-only provenance (see `capability/reference/README.md`).
 
 ## Flows
 
-| flow id   | HITL | route_when |
-| --------- | ---- | ---------- |
-| `sk-dev`  | 2    | Build a feature end-to-end: specify → **clarify** → plan → tasks → analyze → implement → code_review → **review** → commit. |
-| `sk-init` | 1    | One-time: install the `specify` CLI + scaffold Spec Kit + author the project constitution. Run + promote this first. |
+| flow id         | HITL | route_when |
+| --------------- | ---- | ---------- |
+| `sk-dev`        | 2    | Claude Code: build a feature end-to-end: specify → **clarify** → plan → tasks → analyze → implement → code_review → **review** → commit. |
+| `sk-init`       | 1    | Claude Code: install the `specify` CLI + scaffold Spec Kit + author the project constitution. Run + promote this first. |
+| `sk-dev-codex`  | 2    | Codex: the same end-to-end SDLC, using repository-native `$speckit-*` skills. |
+| `sk-init-codex` | 1    | Codex: install the `specify` CLI + scaffold `.agents/skills/speckit-*` + author the project constitution. Run + promote this first. |
 
-`sk-dev` covers the full recommended Spec Kit SDLC in one flow.
+Each `sk-dev` variant covers the full recommended Spec Kit SDLC in one flow.
 
 ## How Spec Kit is driven (hybrid: `cli` + `ai_coding`)
 
-Spec Kit's phases exist **only** as Claude skills (there is no headless CLI for
-specify/plan/tasks/…), so unlike a CLI-first tool the creative phases must run
-through the agent. The flows split work by node type:
+Spec Kit's creative phases exist as agent skills (there is no headless CLI for
+specify/plan/tasks/…), so unlike a CLI-first tool they must run through the
+selected coding agent. The flows split work by node type:
 
 - **`cli` / `check` nodes** run deterministically (MAIster's runner, `bash -c`,
-  host PATH — no agent, no permission HITL): `sk-init`'s `ensure` (install
-  `specify`) + `scaffold` (`specify init`) + `commit`; `sk-dev`'s existence
-  backstops (`spec-gate` / `plan-gate` / `tasks-gate`), the task-completion
-  `verify`, the `clarify-extract` marker dump, and the final `commit`.
-- **`ai_coding` nodes** invoke the `/speckit-*` skills (by their **hyphen**
-  name: `/speckit-specify`, `/speckit-plan`, …) wherever an agent must reason or
-  write: `specify`, `clarify-apply`, `plan`, `tasks`, `analyze`, `implement`,
-  `code-review`. They carry `settings.permissionMode: allow`, so the agent runs
-  unattended — HITL lives at the two human gates (clarify, review).
+  host PATH — no agent, no permission HITL): each init flow's `ensure` (install
+  `specify`) + `scaffold` (`specify init`) + `commit`; each development flow's
+  existence backstops (`spec-gate` / `plan-gate` / `tasks-gate`), the
+  task-completion `verify`, the `clarify-extract` marker dump, and the final
+  `commit`.
+- **`ai_coding` nodes** use MAIster's canonical `@skill:speckit-*` mentions
+  wherever an agent must reason or write. MAIster normalizes them at launch:
+  Claude receives `/speckit-*`; Codex receives `$speckit-*`. The nodes carry
+  `settings.permissionMode: allow`, so the agent runs unattended — HITL lives
+  at the two human gates (clarify, review).
 
 ## The `specify` CLI must be present (and how it gets there)
 
-- **`requirements` (ADR-091).** `sk-dev` declares launch preconditions —
-  `command -v specify`, `test -d .specify`, `test -d .claude/skills/speckit-specify`
-  — probed **before** any worktree/session; launch is refused (clean
-  `PRECONDITION`) if Spec Kit is absent or unscaffolded. `sk-init` requires only
-  `uv|pipx` + `git` (it installs `specify` and scaffolds).
-- **Install + scaffold.** `sk-init` runs
-  `command -v specify || uv tool install … spec-kit.git@v0.10.3` then
-  `specify init --here --force --integration claude --ignore-agent-tools`
-  (fully non-interactive, bundled assets, no network). `setup.sh` does the same
-  install at package-install time (exec-trust gated).
-- **Sequencing.** Run `sk-init` once per project **and promote it** so
-  `.specify/` + `.claude/skills/speckit-*` are committed on the base branch;
-  `sk-dev` worktrees fork from there and load `/speckit-*` at session start.
+- **`requirements` (ADR-091).** Each development flow checks `command -v
+  specify`, `.specify/`, and its own integration directory before creating a
+  worktree/session: `.claude/skills/speckit-specify` for `sk-dev`,
+  `.agents/skills/speckit-specify` for `sk-dev-codex`. A missing scaffold is a
+  clean `PRECONDITION` refusal. The init flows require only `uv|pipx` + `git`.
+- **Install + scaffold.** Both init flows ensure the pinned CLI. `sk-init` runs
+  `specify init --integration claude`; `sk-init-codex` runs `specify init
+  --integration codex --integration-options="--skills"`. Both are fully
+  non-interactive and use assets bundled in the wheel. `setup.sh` performs the
+  same CLI install at package-install time (exec-trust gated).
+- **Sequencing.** Run and promote the init flow matching the intended coding
+  agent. The resulting `.specify/` plus agent-native skills must be committed on
+  the base branch before the corresponding development flow launches.
 
 ## MAIster ↔ Spec Kit reconciliation (in node prompts)
 
-- **Non-interactive.** Spec Kit's `specify`/`clarify` ask the user clarifying
-  questions; `AskUserQuestion` is disabled in the adapter. `sk-dev` agent nodes
-  instead record open questions as `[NEEDS CLARIFICATION: …]` spec markers and
-  proceed on best-judgment assumptions; the authored **clarify** human node
-  surfaces them and feeds the maintainer's answers into `/speckit-clarify`.
+- **Non-interactive.** Spec Kit's specify/clarify skills ask the user clarifying
+  questions; interactive questioning is unavailable inside an unattended node.
+  Both development flows instead record open questions as
+  `[NEEDS CLARIFICATION: …]` spec markers and proceed on best-judgment
+  assumptions; the authored **clarify** human node surfaces them and feeds the
+  maintainer's answers into the matching agent-native skill.
 - **Git/promotion owned by MAIster.** The flows never install Spec Kit's opt-in
-  `git` extension (so `/speckit-specify` only `mkdir`s the `specs/` dir — never
+  `git` extension (so the specify skill only `mkdir`s the `specs/` dir — never
   `git checkout`/`branch`), and the prompts forbid branch/merge/push/PR. Spec +
   code are committed by the terminal `cli` node; MAIster promotes the branch.
-- **CRITICAL blocks implement.** `/speckit-analyze` is read-only (writes no
+- **CRITICAL blocks implement.** The analyze skill is read-only (writes no
   file), so the `analyze` node resolves CRITICAL cross-artifact inconsistencies
   at source and a **blocking `ai_judgment`** gate enforces "zero CRITICAL
   remaining" before `implement`.
 
 ## Policies & gates
 
-- Runner `claude-code` (`claude` / `claude-opus-4-8` / `anthropic`);
-  `compat.engine_min: 1.4.0`; `defaults.session_policy: resume`; `retry_policy`
-  on every `ai_coding` node; `verdict_calibration.confidence_min: 0.7` on `sk-dev`.
+- Claude flows retain their `claude-code` runner pin. Codex flows declare the
+  portable `codex` capability with high effort and let MAIster bind the host
+  runner. All variants use `compat.engine_min: 2.0.0`,
+  `defaults.session_policy: resume`, retry policies on every `ai_coding` node,
+  and verdict calibration on development flows.
 - Gates: existence backstops (`check` nodes) after specify/plan/tasks;
   `analyze` → blocking `ai_judgment` (no CRITICAL); `verify` → `check`
   task-completion (no unchecked `- [ ]`); `review` →
@@ -111,8 +129,9 @@ pinned wheel); the one-time CLI install does.
 
 ## Out of scope (today)
 
-- The `codex` runner (Spec Kit's codex integration differs from the Claude
-  skills surface this package targets).
+- One dynamically switching flow ID for both agents. Static Claude and Codex
+  variants keep runner intent, scaffold paths, and skill invocation syntax
+  explicit and independently preflightable.
 - `/speckit-checklist` and `/speckit-taskstoissues` (GitHub issues), and
   spec-only / implement-only flow splits — future additions.
 - Dynamic multiple-choice clarification surfaced from the agent (needs core

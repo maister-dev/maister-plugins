@@ -4,34 +4,37 @@ This bundle is **reference-only**. It is declared as the package's capability
 (`spec-kit-reference`) so Spec Kit provenance travels with the package, but it
 contains **no `skills/` or `agents/` subtree**, so MAIster's capability
 materializer copies nothing into the session worktree. The flows drive Spec Kit
-through its `specify` CLI + the `/speckit-*` skills that `specify init`
-scaffolds **into the project** (installed by `setup.sh` / the `sk-init` flow).
+through its `specify` CLI plus the agent-native skills that `specify init`
+scaffolds **into the project** (installed by `setup.sh` / the matching init
+flow).
 
 Targets `github/spec-kit@v0.10.3` (MIT).
 
-## The phases (and which `/speckit-*` skill each flow node invokes)
+## The phases (and which speckit skill each flow node invokes)
 
-Spec Kit's SDLC is a sequence of Claude skills. Under Claude the integration is
-**skills-based**: `specify init --integration claude` writes
-`.claude/skills/speckit-<name>/SKILL.md`, invoked by the **hyphen** name
-`/speckit-<name>` (NOT the dotted `/speckit.<name>` the README still shows).
+Spec Kit's SDLC is a sequence of agent skills. The Claude integration writes
+`.claude/skills/speckit-<name>/SKILL.md` and invokes `/speckit-<name>`. The
+Codex integration with `--integration-options="--skills"` writes
+`.agents/skills/speckit-<name>/SKILL.md` and invokes `$speckit-<name>`.
+Flow YAML stores `@skill:speckit-<name>`; MAIster normalizes that canonical
+token to the selected adapter's slash or dollar form at launch.
 
-| phase | skill (hyphen) | writes |
-| ----- | -------------- | ------ |
-| Constitution | `/speckit-constitution` | `.specify/memory/constitution.md` |
-| Specify | `/speckit-specify` | `specs/NNN-<slug>/spec.md`, `…/checklists/requirements.md` |
-| Clarify | `/speckit-clarify` | updates `spec.md` (`## Clarifications`) |
-| Plan | `/speckit-plan` | `plan.md` + `research.md`, `data-model.md`, `contracts/`, `quickstart.md` |
-| Tasks | `/speckit-tasks` | `tasks.md` |
-| Analyze | `/speckit-analyze` | read-only Markdown report (no file written) |
-| Implement | `/speckit-implement` | source code; marks `tasks.md` items `[X]` |
+| phase | Claude / Codex skill | writes |
+| ----- | -------------------- | ------ |
+| Constitution | `/speckit-constitution` / `$speckit-constitution` | `.specify/memory/constitution.md` |
+| Specify | `/speckit-specify` / `$speckit-specify` | `specs/NNN-<slug>/spec.md`, `…/checklists/requirements.md` |
+| Clarify | `/speckit-clarify` / `$speckit-clarify` | updates `spec.md` (`## Clarifications`) |
+| Plan | `/speckit-plan` / `$speckit-plan` | `plan.md` + `research.md`, `data-model.md`, `contracts/`, `quickstart.md` |
+| Tasks | `/speckit-tasks` / `$speckit-tasks` | `tasks.md` |
+| Analyze | `/speckit-analyze` / `$speckit-analyze` | read-only Markdown report (no file written) |
+| Implement | `/speckit-implement` / `$speckit-implement` | source code; marks `tasks.md` items `[X]` |
 
-Optional phases not yet wired into a flow: `/speckit-checklist`,
-`/speckit-taskstoissues`.
+Optional phases not yet wired into a flow: `speckit-checklist` and
+`speckit-taskstoissues`.
 
-## The SKILL.md frontmatter `specify init` writes (for Claude)
+## The SKILL.md frontmatter `specify init` writes
 
-Each scaffolded `.claude/skills/speckit-<name>/SKILL.md` carries frontmatter the
+Each scaffolded agent-native `speckit-<name>/SKILL.md` carries frontmatter the
 CLI rebuilds per-agent — for example `speckit-plan`:
 
 ```yaml
@@ -53,16 +56,16 @@ exact invocation surface the flows target is auditable.
 
 ## Why these are reference, not live MAIster capabilities
 
-1. **`specify init` writes them into the consuming project.** The flows invoke
-   the project's own `.claude/skills/speckit-*` (committed by `sk-init`), so
-   MAIster ships nothing to materialize.
-2. **They assume interactivity.** `/speckit-specify` and `/speckit-clarify` ask
-   the user clarifying questions; `AskUserQuestion` is disabled in MAIster's ACP
-   adapter (`claude-agent-acp` `disallowedTools`). The `sk-dev` flow reconciles
-   this: agent nodes record open questions as `[NEEDS CLARIFICATION: …]` markers
-   instead of asking, and an authored **clarify** human node collects the
-   maintainer's answers and feeds them into `/speckit-clarify`.
+1. **`specify init` writes them into the consuming project.** Claude flows use
+   `.claude/skills/speckit-*` committed by `sk-init`; Codex flows use
+   `.agents/skills/speckit-*` committed by `sk-init-codex`. MAIster ships
+   nothing to materialize.
+2. **They assume interactivity.** The specify and clarify skills normally ask
+   the user questions. MAIster's unattended development flows instead record
+   open questions as `[NEEDS CLARIFICATION: …]` markers, then an authored
+   **clarify** human node collects the maintainer's answers and feeds them back
+   into the matching agent-native skill.
 
 The `.specify/` scripts, templates, and command bodies live inside the pinned
-`spec-kit` wheel (bundled, no network) and are scaffolded at `sk-init` time;
+`spec-kit` wheel (bundled, no network) and are scaffolded by the matching init flow;
 they are not re-vendored here.

@@ -10,18 +10,21 @@ schemaVersion: 1
 name: spec-kit
 metadata:
   title: "Spec Kit"
-  summary: "GitHub Spec Kit spec-driven SDLC (constitution -> specify -> clarify -> plan -> tasks -> analyze -> implement) as MAIster flows (sk-dev, sk-init), driving the pinned specify CLI + the /speckit-* Claude skills. Reference bundle only — Spec Kit's skills are scaffolded into the project by `specify init`, not materialized by MAIster."
+  summary: "GitHub Spec Kit spec-driven SDLC (constitution -> specify -> clarify -> plan -> tasks -> analyze -> implement) as MAIster flows for Claude Code and Codex, driving the pinned specify CLI + agent-native speckit skills. Reference bundle only — Spec Kit's skills are scaffolded into the project by `specify init`, not materialized by MAIster."
   links:
     - { kind: framework, title: "Spec Kit", url: "https://github.com/github/spec-kit" }
     - { kind: docs, title: "Spec-Driven Development", url: "https://github.com/github/spec-kit/blob/main/spec-driven.md" }
+    - { kind: docs, title: "Codex skills", url: "https://developers.openai.com/codex/skills" }
   sources:
     - { component: "capability/reference/* (phase + frontmatter reference)", origin: "git:github.com/github/spec-kit@v0.10.3" }
 flows:
   - { id: sk-dev, path: flows/dev }
   - { id: sk-init, path: flows/init }
+  - { id: sk-dev-codex, path: flows/dev-codex }
+  - { id: sk-init-codex, path: flows/init-codex }
 # Reference-only bundle (no skills/agents subtree → nothing is materialized into
-# the worktree). Spec Kit's /speckit-* skills are written into the project by
-# `specify init --integration claude` (sk-init), so MAIster ships none.
+# the worktree). Spec Kit writes agent-native skills into the project through
+# `specify init` (the matching sk-init variant), so MAIster ships none.
 capabilities:
   - { id: spec-kit-reference, path: capability }
 # Spec Kit is driven via its `specify` CLI + scaffolded skills, not an MCP server.
