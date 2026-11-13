@@ -1,0 +1,127 @@
+schemaVersion: 1
+name: stand-maintenance
+compat:
+  engine_min: 3.12.0
+execution:
+  workspace: none
+  completion: result
+metadata:
+  title: Stand diagnosis, restart and verification
+  summary: Coordinate a single human-approved restart and retain independent health evidence.
+runner_profiles:
+  core-claude:
+    capability_agent: claude
+    adapter: claude
+    provider:
+      kind: anthropic
+sessions:
+  maintenance:
+    runner: core-claude
+result:
+  export:
+    schema: ./schemas/operational-evidence.v2.json
+    native_contract: operational_evidence_v2
+    from: [execute, declined]
+    required: true
+nodes:
+  - id: coordinate
+    type: orchestrator
+    session: maintenance
+    settings:
+      agent: stand-operations:coordinator
+      workspaceAccess: read
+      permissionMode: ask
+      limits:
+        maxDurationMinutes: 12
+      delegation:
+        max_depth: 1
+        max_fanout: 1
+        max_active_children: 1
+        budget:
+          max_tokens: 1500000
+          wall_clock_minutes: 12
+          max_child_runs: 1
+          consecutive_failures: 1
+    action:
+      prompt: |-
+        Work on the appointed assignment {{ assignment.id }}.
+        Objective: {{ assignment.objective }}
+        Input: {{ assignment.input }}
+        Inspect assignment_get and its context before any action. Use the exact current business and input revisions.
+        The assignment must identify the configured component. Use assignment_question_ask when that selector is missing.
+        Retain one restart intent with a stable assignment/component/input-derived idempotency key and persist its
+        operation ID in assignment context. On resume use that ID. Read the exact runbook pin returned with the
+        operation, including its supporting witness. Call stand_operation_observe and stand_operation_logs.
+        For ambiguous symptoms delegate read-only diagnosis to stand-operations:diagnostic with mode run, workspace none,
+        resultProfile findings and the exact native assignmentWork selector. Give the child exact allowed evidence
+        and the current operation ID. Collect the existing child on resume and retain its original references.
+        For each child finding, preserve assertion, basis, evidence and limitations exactly, add sourceFindings with the
+        direct child Run ID, result revision and finding ID, and add the corresponding retained selection entry.
+        If the child is pending, end the turn without a final output. Never delegate the restart.
+        Accept usable child results with specialist_assignment_work_decide and the exact collected revisions.
+        Return the retained operation ID as {"operationId":"..."} in one final fenced json maister:output block.
+    output:
+      result:
+        schema: ./schemas/restart-intent.json
+        required: true
+    transitions:
+      success: authorize
+  - id: authorize
+    type: human
+    finish:
+      human:
+        decisions: [continue, decline]
+    transitions:
+      continue: execute
+      decline: declined
+  - id: execute
+    type: ai_coding
+    session: maintenance
+    settings:
+      agent: stand-operations:coordinator
+      workspaceAccess: read
+      permissionMode: ask
+      limits:
+        maxDurationMinutes: 6
+    action:
+      prompt: |-
+        Assignment {{ assignment.id }}. Retained restart {{ steps.coordinate.vars.operationId }}.
+        Get the exact current operation and its approvalState. The preceding human review advances this Flow;
+        only a separate approval recorded on the exact operation digest authorizes dispatch. If approval is absent,
+        report a blocked outcome. Never create another restart here.
+        Use stand_operation_dispatch only after the human grants exact approval. If the response is lost, use
+        stand_operation_get and keep the original ID. A pending/unknown effect requires human recovery. After the original
+        effect is confirmed applied, use stand_operation_verify and inspect the latest independently retained probe.
+        Declare success only after the expected effect and health are both present. Propose a reusable addition through
+        findings.knowledgeProposals with exact accessible citations when appropriate. Keep confirmation separate.
+        Return one final fenced block opened with ```json maister:output. Supply schemaVersion 2, outcome, summary,
+        coverage {state,remainingKnown}, counts {scanned,attempted,completed,failed,skipped,created}, references,
+        diagnostics, findings {schemaVersion:1,findings,knowledgeProposals,selection}, operationIds and verificationIds.
+        Cite only retained IDs. For a blocked result include an actionable diagnostic and explicit missing evidence.
+    output:
+      result:
+        schema: ./schemas/operational-evidence.v2.json
+        required: true
+    transitions:
+      success: done
+  - id: declined
+    type: ai_coding
+    session: maintenance
+    settings:
+      agent: stand-operations:coordinator
+      workspaceAccess: read
+      permissionMode: ask
+      limits:
+        maxDurationMinutes: 2
+    action:
+      prompt: |-
+        Assignment {{ assignment.id }}. The operator declined restart {{ steps.coordinate.vars.operationId }}.
+        Perform no further action. Return exactly one json maister:output operational_evidence_v2 result with
+        outcome blocked, incomplete coverage, zero completed operations, empty operationIds and verificationIds,
+        and one actionable warning. Retain any previous findings and their original references.
+    output:
+      result:
+        schema: ./schemas/operational-evidence.v2.json
+        required: true
+    transitions:
+      success: done
