@@ -68,6 +68,8 @@ nodes:
       success: authorize
   - id: authorize
     type: human
+    settings:
+      roles: [operator]
     finish:
       human:
         decisions: [continue, decline]

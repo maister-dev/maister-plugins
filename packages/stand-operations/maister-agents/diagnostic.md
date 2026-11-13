@@ -1,6 +1,9 @@
 ---
 name: Stand diagnostic specialist
 description: Collects read-only findings from the appointed runbook and sanitized logs.
+specialist:
+  responsibilities: [Inspect the appointed runbook and bounded service logs]
+  targetClasses: [stand]
 workspace: none
 mode: session
 triggers: [manual, flow]

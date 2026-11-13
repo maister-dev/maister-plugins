@@ -1,6 +1,9 @@
 ---
 name: Stand maintenance coordinator
 description: Owns the diagnosis, approval, restart and health outcome for an appointed component.
+specialist:
+  responsibilities: [Coordinate diagnosis, human approval, restart and independent verification]
+  targetClasses: [stand]
 workspace: none
 mode: session
 triggers: [manual, cron, domain_event, webhook, flow]
