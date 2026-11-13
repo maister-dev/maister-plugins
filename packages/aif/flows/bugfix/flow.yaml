@@ -2,7 +2,7 @@ schemaVersion: 1
 name: aif-bugfix
 metadata:
   title: "AIF — Bugfix"
-  summary: "Regression-first bug loop: fix → verify → judge review → adversarial cross-review by the second agent → bounded fix loops → human review → commit; emits a self-improvement patch."
+  summary: "Regression-first bug loop: fix → verify → judge and cross-review → commit if needed → human review; emits a self-improvement patch."
   labels: [bug, hotfix, regression]
   route_when: "A reported bug/error/regression to fix."
   links:
@@ -150,7 +150,7 @@ nodes:
       pass: code_review
       warn: code_review
       fail: fix
-      exhausted: review
+      exhausted: check_worktree
     rework:
       allowedTargets: [fix]
       workspacePolicies: [keep]
@@ -214,7 +214,7 @@ nodes:
     transitions:
       fix: fix
       commit: cross_review
-      exhausted: review
+      exhausted: check_worktree
     # ADR-118: the autonomous bounded review↔fix loop; exhaustion routes to the
     # human `review` so the accumulated worktree is preserved.
     rework:
@@ -288,8 +288,8 @@ nodes:
       from: output.recommendation
     transitions:
       fix: fix
-      commit: review
-      exhausted: review
+      commit: check_worktree
+      exhausted: check_worktree
     rework:
       allowedTargets: [fix]
       workspacePolicies: [keep]
@@ -306,6 +306,28 @@ nodes:
       # epoch for both so their visit caps count per cross-review round and
       # exhaustion always reaches the human node instead of the CONFIG backstop.
       resetTargets: [checks, code_review]
+
+  - id: check_worktree
+    type: check
+    retry_safe: true
+    action:
+      command: |
+        set -eu
+        changes=$(git status --porcelain=v1 --untracked-files=all)
+        if [ -n "$changes" ]; then
+          printf '%s\n' '{"worktree_state":"dirty"}' > "$MAISTER_OUTPUT_FILE"
+        else
+          printf '%s\n' '{"worktree_state":"clean"}' > "$MAISTER_OUTPUT_FILE"
+        fi
+    output:
+      result:
+        schema: ./schemas/worktree-state.json
+        required: true
+    decide:
+      from: output.worktree_state
+    transitions:
+      clean: review
+      dirty: commit
 
   - id: review
     type: human
@@ -328,10 +350,10 @@ nodes:
         decisions: [approve, rework, takeover]
         commentsVar: review_comments
     transitions:
-      approve: commit
+      approve: done
       rework: fix
       # Takeover returns at `checks` so the human's local edits are re-verified
-      # and re-reviewed before commit.
+      # and re-reviewed before approval.
       takeover: checks
     rework:
       allowedTargets: [fix]
@@ -355,8 +377,9 @@ nodes:
       prompt: |
         @skill:aif-commit
 
-        Commit the working tree as Conventional Commits — split by concern when
-        the changes mix concerns. This node ends at a clean tracked tree;
+        Commit the reviewed task changes, including any new task files, as
+        Conventional Commits. Split by concern when the changes mix concerns.
+        Leave the working tree clean without discarding or hiding changes;
         MAIster owns push, merge and promotion, so no push or branch operations.
 
         Answers to the skill's own questions: a Commit Plan in the active plan →
@@ -367,6 +390,10 @@ nodes:
         - id: commit-gate
           kind: command_check
           mode: blocking
-          command: "test -z \"$(git status --porcelain --untracked-files=no)\" && git log -1 --pretty=%s | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\([^)]+\\))?!?: .+'"
+          command: |
+            set -eu
+            changes=$(git status --porcelain=v1 --untracked-files=all)
+            test -z "$changes"
+            git log -1 --pretty=%s | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([^)]+\))?!?: .+'
     transitions:
-      success: done
+      success: review
