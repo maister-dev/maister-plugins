@@ -8,6 +8,22 @@ MAIster flows backed by a shared skills + subagents bundle.
 This package is self-contained; nothing here imports from MAIster core.
 Versioned by per-package git tags: `aif/vX.Y.Z` (see the repo root README).
 
+## What changed in `aif/v3.0.1`
+
+Review routing prompts in `dev`, `dev-light`, `autonomous` and `bugfix` now
+carry the exact `maister:output` JSON contract themselves: `recommendation`
+(`fix` or `commit`) plus `review_comments`. They no longer rely on the
+repository-local `aif-review` skill containing the package's native-routing
+extension. Older local skills can otherwise produce a `status` key, which is
+valid for verification but fails the review schema. Review criteria, schemas,
+loop limits and transitions are unchanged.
+
+Regression check (Python 3 + PyYAML):
+
+```sh
+python3 -m unittest discover -s packages/aif/tests -v
+```
+
 ## What changed in `aif/v3.0.0`
 
 A major bump: the engine floor of the delivery flows moves to **3.7.0**

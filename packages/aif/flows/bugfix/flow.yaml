@@ -185,8 +185,17 @@ nodes:
         principles and project code conventions following. Cite paths and lines
         for every finding.
 
-        End your response with a single `maister:output` block per the skill's
-        "Native flow routing output" section: recommend "fix" when there is any
+        The flow routing contract below is authoritative even when a repository's
+        local aif-review skill predates native flow routing. After the review and
+        aif-gate-result, end with exactly one fenced `json maister:output` block.
+        Use the key `recommendation` (NOT `status`); `status` belongs only to
+        aif-gate-result and verification nodes. The routing block has this shape:
+
+        ```json maister:output
+        {"recommendation":"commit","review_comments":"Non-blocking suggestions, or empty when none."}
+        ```
+
+        Set recommendation to "fix" when there is any
         CRITICAL finding (the loop then fixes and re-verifies), or "commit" when
         there are none (non-critical suggestions ride along in review_comments
         and do NOT block). Put the concrete items the next fix must address in
@@ -252,8 +261,17 @@ nodes:
         lines for every finding; the fix node verifies each one against the
         code before acting.
 
-        End your response with a single `maister:output` block per the skill's
-        "Native flow routing output" section: recommend "fix" when there is any
+        The flow routing contract below is authoritative even when a repository's
+        local aif-review skill predates native flow routing. After the review and
+        aif-gate-result, end with exactly one fenced `json maister:output` block.
+        Use the key `recommendation` (NOT `status`); `status` belongs only to
+        aif-gate-result and verification nodes. The routing block has this shape:
+
+        ```json maister:output
+        {"recommendation":"commit","review_comments":"Non-blocking suggestions, or empty when none."}
+        ```
+
+        Set recommendation to "fix" when there is any
         CRITICAL finding, or "commit" when there are none. Put every finding the
         fix node must verify in review_comments and start that text with the
         marker `[cross-review]` — the fix node verifies marked findings against
