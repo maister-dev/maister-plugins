@@ -22,7 +22,7 @@ recommended:
 
 Read only the appointed operation, exact runbook revision, supporting witness and bounded sanitized logs. Read each once unless the tool explicitly returns a retryable error. Do not request approval, change the stand, quote raw logs or invent references. Return one compact finding about the diagnosis. In the finding, list only the exact knowledge record and witness for the procedure you consulted. Describe the limits of the logs in text, with missingEvidence when there is no separate eligible observation witness.
 
-Return only a final fenced block. Copy the example's entire first line, including the literal marker and its colon; the JSON begins on the second line. Use this exact success structure, replacing the summary and findings with this run's values. Keep top-level references and diagnostics empty on success.
+Use tool calls without commentary. Return exactly one final fenced block. Copy the example's entire first line, including the literal marker and its colon; the JSON begins on the second line. Use this exact success structure, replacing the summary and findings with this run's values. Keep top-level references and diagnostics empty on success.
 
 ```json maister:output
 {

@@ -40,8 +40,8 @@ nodes:
         budget:
           max_tokens: 1500000
           wall_clock_minutes: 12
-          max_child_runs: 1
-          consecutive_failures: 1
+          max_child_runs: 2
+          consecutive_failures: 2
     action:
       prompt: |-
         Work on the appointed assignment {{ assignment.id }}.
@@ -67,18 +67,23 @@ nodes:
         The operation ID belongs in text; references accepts only authorized Brain references. On resume read that entry
         and use the same ID. Read the exact runbook pin returned with the
         operation, including its supporting witness. Call stand_operation_observe and stand_operation_logs.
-        For ambiguous symptoms use run_delegate with target {agentId: "stand-operations:diagnostic"}, mode "run",
-        workspace "none", a diagnostic prompt and assignmentWork {selector, expectedOutcome}. The selector uses
-        schemaVersion 1, the current assignmentId, expectedRevision, inputRevision and contextRevision from
-        assignment_get, logicalWorkId "diagnose-stand" and workRevision 1. Give the child the current operation ID
-        and exact authorized runbook reference in the prompt. Native company work takes its result contract from the
-        reviewed child binding. Omit title, resultProfile, runnerOverride and persistent. Collect the existing child
-        on resume and read evidence from result.value.findings.findings, preserving its original references.
-        For delegation_execution_busy, retry run_delegate with the same operationKey after an assignment_get.
-        Keep one operationKey and one logical work revision for the same diagnostic. Use only the MAIster tools;
-        do not use Bash for waits or inspect the local environment.
-        If the child is pending, end the turn without a final output. Never delegate the restart.
-        For the single returned child c, accept only c.resultStatus == "valid". Call specialist_assignment_work_decide
+        For a diagnostic, call run_collect with all:true before delegating. This Flow owns only one logical child, diagnose-stand.
+        If it already exists, use its highest workRevision. Never recreate revision 1 or repeat an accepted decision.
+        If no child exists, call run_delegate with target {agentId: "stand-operations:diagnostic"}, mode "run",
+        workspace "none" and assignmentWork {selector, expectedOutcome}. Its exact prompt is:
+        Inspect stand operation <operation ID> with runbook <knowledge record ID> revision <runbook revision>.
+        Replace only the placeholders with the exact witnesses from the retained operation. Use that same prompt after interruption.
+        The selector uses schemaVersion 1, current assignmentId, expectedRevision, inputRevision and contextRevision,
+        logicalWorkId "diagnose-stand" and workRevision 1. Native company work takes its result contract from the
+        reviewed child binding. Omit title, resultProfile, runnerOverride and persistent. For delegation_execution_busy,
+        retry with the same operationKey after refreshing assignment_get. Do not use Bash for waits or inspect the environment.
+        If the child is pending, end the turn without output. If work revision 1 has recoveryMode recover_interrupted,
+        call run_rework once with its childRunId, the same exact original prompt and assignmentWork containing schemaVersion 1,
+        mode recover_interrupted, expectedRevision=c.assignmentWork.revision, workRevision=c.assignmentWork.workRevision,
+        inputRevision=c.assignmentWork.inputRevision, resultRevision=c.resultRevision and requestKey "recover-diagnose-stand-1".
+        If the replacement is pending, end the turn without output. Do not rework any other failure. Never delegate restart.
+        If working context already holds the accepted entry for the exact child, use it unchanged and emit the operation ID.
+        For the current child c, accept only c.resultStatus == "valid". Call specialist_assignment_work_decide
         with assignmentId=c.assignmentWork.assignmentId, workId=c.assignmentWork.id,
         workRevision=c.assignmentWork.workRevision, expectedRevision=c.assignmentWork.revision,
         inputRevision=c.assignmentWork.inputRevision, resultRevision=c.resultRevision, decision="accept", a short reason
