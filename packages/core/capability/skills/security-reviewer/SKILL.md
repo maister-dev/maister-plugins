@@ -1,13 +1,14 @@
 ---
 name: security-reviewer
-description: Identifies security vulnerabilities, generates structured audit reports with severity ratings, and provides actionable remediation guidance. Use when conducting security audits, reviewing code for vulnerabilities, or analyzing infrastructure security. Invoke for SAST scans, penetration testing, DevSecOps practices, cloud security reviews, dependency audits, secrets scanning, or compliance checks. Produces vulnerability reports, prioritized recommendations, and compliance checklists.
+description: Review source, dependencies, secrets and infrastructure configuration for security issues. Report findings with affected locations, severity and remediation.
 license: MIT
-allowed-tools: Read, Grep, Glob, Bash
+allowed-tools: Read Grep Glob
 metadata:
   author: https://github.com/Jeffallan
+  company: https://synergetic.solutions
   version: "1.1.1"
   domain: security
-  triggers: security review, vulnerability scan, SAST, security audit, penetration test, code audit, security analysis, infrastructure security, DevSecOps, cloud security, compliance audit
+  triggers: security review, SAST, dependency audit, code audit, secret scanning, infrastructure review
   role: specialist
   scope: review
   output-format: report
@@ -16,14 +17,13 @@ metadata:
 
 # Security Reviewer
 
-Security analyst specializing in code review, vulnerability identification, penetration testing, and infrastructure security.
+Review the supplied code and configuration. Support each finding with source evidence and an actionable fix.
 
 ## When to Use This Skill
 
 - Code review and SAST scanning
 - Vulnerability scanning and dependency audits
 - Secrets scanning and credential detection
-- Penetration testing and reconnaissance
 - Infrastructure and cloud security audits
 - DevSecOps pipelines and compliance automation
 
@@ -37,7 +37,7 @@ Security analyst specializing in code review, vulnerability identification, pene
    - `npm audit --audit-level=moderate`
    - `trivy fs .`
 3. **Review** — Manual review of auth, input handling, and crypto. Tools miss context — manual review is mandatory.
-4. **Test and classify** — **Verify written scope authorization before active testing.** Validate findings, rate severity (Critical/High/Medium/Low/Info) using CVSS. Confirm exploitability with proof-of-concept only; do not exceed it.
+4. **Classify** — Trace findings in source, check existing tests and assess impact and severity.
 5. **Report** — Confirm findings with stakeholder before finalizing. Document with location, impact, and remediation. Report critical findings immediately.
 
 ## Reference Guide
@@ -49,7 +49,6 @@ Load detailed guidance based on context:
 | SAST Tools | `references/sast-tools.md` | Running automated scans |
 | Vulnerability Patterns | `references/vulnerability-patterns.md` | SQL injection, XSS, manual review |
 | Secret Scanning | `references/secret-scanning.md` | Gitleaks, finding hardcoded secrets |
-| Penetration Testing | `references/penetration-testing.md` | Active testing, reconnaissance, exploitation |
 | Infrastructure Security | `references/infrastructure-security.md` | DevSecOps, cloud security, compliance |
 | Report Template | `references/report-template.md` | Writing security report |
 
@@ -100,6 +99,8 @@ References: CWE-89, OWASP A03:2021
 
 ## Knowledge Reference
 
-OWASP Top 10, CWE, Semgrep, Bandit, ESLint Security, gosec, npm audit, gitleaks, trufflehog, CVSS scoring, nmap, Burp Suite, sqlmap, Trivy, Checkov, HashiCorp Vault, AWS Security Hub, CIS benchmarks, SOC2, ISO27001
+OWASP Top 10, CWE, Semgrep, Bandit, ESLint Security, gosec, npm audit, gitleaks, trufflehog, CVSS scoring, Trivy, Checkov, HashiCorp Vault, AWS Security Hub, CIS benchmarks, SOC2, ISO27001
+
+Maintained by [@jeffallan](https://github.com/jeffallan), Principal Consultant at [Synergetic Solutions](https://synergetic.solutions)
 
 [Documentation](https://jeffallan.github.io/claude-skills/skills/security/security-reviewer/)

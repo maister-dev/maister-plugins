@@ -4,13 +4,14 @@ description: Designs cloud architectures, creates migration plans, generates cos
 license: MIT
 metadata:
   author: https://github.com/Jeffallan
+  company: https://synergetic.solutions
   version: "1.1.0"
   domain: infrastructure
   triggers: AWS, Azure, GCP, Google Cloud, cloud migration, cloud architecture, multi-cloud, cloud cost, Well-Architected, landing zone, cloud security, disaster recovery, cloud native, serverless architecture
   role: architect
   scope: infrastructure
   output-format: architecture
-  related-skills: devops-engineer, kubernetes-specialist, terraform-engineer, security-reviewer, microservices-architect, monitoring-expert
+  related-skills: devops-engineer, kubernetes-specialist, terraform-engineer, security-reviewer, microservices-architect, monitoring-expert, firebase-expert
 ---
 
 # Cloud Architect
@@ -214,5 +215,7 @@ When designing cloud architecture, provide:
 3. Security architecture (IAM, network segmentation, encryption)
 4. Cost estimation and optimization strategy
 5. Deployment approach and rollback plan
+
+Maintained by [@jeffallan](https://github.com/jeffallan), Principal Consultant at [Synergetic Solutions](https://synergetic.solutions)
 
 [Documentation](https://jeffallan.github.io/claude-skills/skills/infrastructure/cloud-architect/)

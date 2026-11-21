@@ -13,6 +13,9 @@ metadata:
   links:
     - { kind: docs, title: "Triage domain", url: "https://github.com/maister-dev/maister/blob/master/docs/system-analytics/triage.md" }
     - { kind: docs, title: "Platform agents", url: "https://github.com/maister-dev/maister/blob/master/docs/system-analytics/agents.md" }
+  sources:
+    - { component: "backend-patterns, coding-standards, team-agent-orchestration", origin: "github.com/affaan-m/everything-claude-code@v2.2.3" }
+    - { component: "api-designer, architecture-designer, cli-developer, cloud-architect, code-documenter, code-reviewer, fine-tuning-expert, fullstack-guardian, legacy-modernizer, microservices-architect, playwright-expert, secure-code-guardian, security-reviewer, spec-miner, test-master, websocket-engineer", origin: "github.com/Jeffallan/claude-skills@v0.4.21" }
 # No flows: the package combines platform agents with a shared skill bundle.
 # Agents are catalogued from maister-agents/<stem>.md under id `core:<stem>`.
 flows: []

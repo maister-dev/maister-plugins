@@ -74,6 +74,15 @@ but do not add transactional external-ID uniqueness to MAIster. Ambiguous
 writes are held for operator review. Before enabling cron, check a new issue,
 a duplicate, a repeated run, and recovery between task creation and its receipt.
 
+## Skill sources
+
+- [affaan-m/everything-claude-code v2.2.3](https://github.com/affaan-m/everything-claude-code/tree/v2.2.3) — `backend-patterns`, `coding-standards`, `team-agent-orchestration`.
+- [Jeffallan/claude-skills v0.4.21](https://github.com/Jeffallan/claude-skills/tree/v0.4.21) — `api-designer`, `architecture-designer`, `cli-developer`, `cloud-architect`, `code-documenter`, `code-reviewer`, `fine-tuning-expert`, `fullstack-guardian`, `legacy-modernizer`, `microservices-architect`, `playwright-expert`, `secure-code-guardian`, `security-reviewer`, `spec-miner`, `test-master`, `websocket-engineer`.
+
+The packaged security reviewer focuses on source and configuration review. The GitHub intake and task qualification skills are maintained in MAIster.
+
+License notices ship in `capability/reference/`.
+
 ## Adding a skill
 
 Create `capability/skills/<skill-id>/SKILL.md`. References, scripts, examples,

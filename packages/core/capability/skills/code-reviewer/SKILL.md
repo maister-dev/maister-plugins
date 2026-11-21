@@ -2,16 +2,19 @@
 name: code-reviewer
 description: Analyzes code diffs and files to identify bugs, security vulnerabilities (SQL injection, XSS, insecure deserialization), code smells, N+1 queries, naming issues, and architectural concerns, then produces a structured review report with prioritized, actionable feedback. Use when reviewing pull requests, conducting code quality audits, identifying refactoring opportunities, or checking for security issues. Invoke for PR reviews, code quality checks, refactoring suggestions, review code, code quality. Complements specialized skills (security-reviewer, test-master) by providing broad-scope review across correctness, performance, maintainability, and test coverage in a single pass.
 license: MIT
-allowed-tools: Read, Grep, Glob
+allowed-tools: Read Grep Glob
 metadata:
   author: https://github.com/Jeffallan
-  version: "1.1.0"
+  company: https://synergetic.solutions
+  version: "1.1.1"
   domain: quality
   triggers: code review, PR review, pull request, review code, code quality
   role: specialist
   scope: review
   output-format: report
   related-skills: security-reviewer, test-master, architecture-designer
+  seo-title: Code Review
+  seo-description: Install the Code Reviewer skill in Claude Code, see what it checks in a pull request, from SQL injection to N+1 queries, and read an example review report.
 ---
 
 # Code Reviewer
@@ -117,5 +120,7 @@ Code review report must include:
 ## Knowledge Reference
 
 SOLID, DRY, KISS, YAGNI, design patterns, OWASP Top 10, language idioms, testing patterns
+
+Maintained by [@jeffallan](https://github.com/jeffallan), Principal Consultant at [Synergetic Solutions](https://synergetic.solutions)
 
 [Documentation](https://jeffallan.github.io/claude-skills/skills/quality/code-reviewer/)

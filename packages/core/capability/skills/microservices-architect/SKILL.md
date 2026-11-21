@@ -4,6 +4,7 @@ description: Designs distributed system architectures, decomposes monoliths into
 license: MIT
 metadata:
   author: https://github.com/Jeffallan
+  company: https://synergetic.solutions
   version: "1.1.0"
   domain: api-architecture
   triggers: microservices, service mesh, distributed systems, service boundaries, domain-driven design, event sourcing, CQRS, saga pattern, Kubernetes microservices, Istio, distributed tracing
@@ -125,7 +126,7 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 10
 ```
-`/health/live` — returns 200 if the process is running.
+`/health/live` — returns 200 if the process is running.  
 `/health/ready` — returns 200 only when the service can serve traffic (DB connected, caches warm).
 
 ## Constraints
@@ -162,5 +163,7 @@ When designing microservices architecture, provide:
 ## Knowledge Reference
 
 Domain-driven design, bounded contexts, event storming, REST/gRPC, message queues (Kafka, RabbitMQ), service mesh (Istio, Linkerd), Kubernetes, circuit breakers, saga patterns, event sourcing, CQRS, distributed tracing (Jaeger, Zipkin), API gateways, eventual consistency, CAP theorem
+
+Maintained by [@jeffallan](https://github.com/jeffallan), Principal Consultant at [Synergetic Solutions](https://synergetic.solutions)
 
 [Documentation](https://jeffallan.github.io/claude-skills/skills/api-architecture/microservices-architect/)
