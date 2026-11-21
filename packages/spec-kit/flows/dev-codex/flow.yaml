@@ -45,8 +45,9 @@ requirements:
   - name: "Spec Kit scaffolded (.specify/)"
     probe: "test -d .specify"
     hint: "run the sk-init-codex flow first (specify init scaffolds .specify/)"
-  - name: "speckit skills present (.agents/skills/speckit-specify)"
-    probe: "test -d .agents/skills/speckit-specify"
+  - name: "Spec Kit 1.4.3 workflow skills in .agents/skills"
+    probe: >-
+      for phase in constitution specify clarify plan tasks analyze implement; do grep -Fqx '  version: "1.4.3"' .agents/skills/speckit-"$phase"/SKILL.md || exit 1; done
     hint: "run + promote sk-init-codex first so .agents/skills/speckit-* are committed on the base branch"
 nodes:
   - id: specify

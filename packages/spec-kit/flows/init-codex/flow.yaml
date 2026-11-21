@@ -71,7 +71,8 @@ nodes:
         - id: skills-scaffolded
           kind: command_check
           mode: blocking
-          command: "test -d .specify && test -d .agents/skills/speckit-specify"
+          command: >-
+            for phase in constitution specify clarify plan tasks analyze implement; do grep -Fqx '  version: "1.4.3"' .agents/skills/speckit-"$phase"/SKILL.md || exit 1; done
     transitions:
       success: constitution
 

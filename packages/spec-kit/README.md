@@ -10,10 +10,8 @@ Versioned by per-package git tags: `spec-kit/vX.Y.Z`. The **Spec Kit version is
 pinned to `github/spec-kit@v1.4.3`** in `setup.sh` and both init flows'
 installer.
 
-## Unreleased
+## Codex integration
 
-- Adds Codex-native `sk-init-codex` and `sk-dev-codex` flows without changing
-  the existing Claude Code flows.
 - `sk-init-codex` uses Spec Kit's bundled Codex integration with skills enabled,
   which scaffolds `.agents/skills/speckit-*`; `sk-dev-codex` requires that
   repository-native path and invokes the skills through `$speckit-*` mentions.
@@ -75,11 +73,7 @@ selected coding agent. The flows split work by node type:
 
 ## The `specify` CLI must be present (and how it gets there)
 
-- **`requirements` (ADR-091).** Each development flow checks `command -v
-  specify`, `.specify/`, and its own integration directory before creating a
-  worktree/session: `.claude/skills/speckit-specify` for `sk-dev`,
-  `.agents/skills/speckit-specify` for `sk-dev-codex`. A missing scaffold is a
-  clean `PRECONDITION` refusal. The init flows require only `uv|pipx` + `git`.
+- **Launch requirements.** Each development flow checks the CLI version, the project scaffold and the generated revision of all seven skills used by its workflow. After upgrading, run and promote the matching init flow to refresh the Claude or Codex integration in the base branch.
 - **Install + scaffold.** Both init flows ensure the pinned CLI. `sk-init` runs
   `specify init --integration claude`; `sk-init-codex` runs `specify init
   --integration codex --integration-options="--skills"`. Both are fully
