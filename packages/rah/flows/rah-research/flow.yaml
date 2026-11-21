@@ -68,6 +68,8 @@ nodes:
         rah:evidence-researcher for the question and rah:contradiction-researcher for contradictions and limitations.
         Pass the exact owner and references from the request.
         Collect every launched direct child through run_collect and inspect result.value and resultRevision.
+        On resume, call run_collect with all:true and use the settled direct children's exact collected results for reduction.
+        Carry forward their evidence and explicit gaps without repeating their tool reads.
         If run_collect reports nonterminal children, end this turn with a short pending status and no final output block.
         The harness parks this same run and resumes it when child work settles. On resume collect the existing child IDs;
         do not launch replacement children, poll in a loop, start a shell timer, or read background-task files.

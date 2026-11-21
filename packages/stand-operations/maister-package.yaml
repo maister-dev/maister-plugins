@@ -1,0 +1,16 @@
+schemaVersion: 1
+name: stand-operations
+compat:
+  engine_min: 3.12.0
+metadata:
+  title: Configured stand maintenance
+  summary: Diagnose an appointed component, obtain human approval, restart once and verify independently.
+flows:
+  - id: stand-maintenance
+    path: flows/stand-maintenance
+result_profiles:
+  findings:
+    schema: ./schemas/evidence-findings.v1.json
+    native_contract: evidence_findings_v1
+capabilities: []
+mcps: []

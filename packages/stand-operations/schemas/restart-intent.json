@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    { "name": "operationId", "type": "string", "required": true }
+  ]
+}

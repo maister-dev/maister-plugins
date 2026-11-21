@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "name": "schemaVersion",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "outcome",
+      "type": "enum",
+      "required": true,
+      "options": [
+        "success",
+        "partial",
+        "blocked",
+        "failed"
+      ]
+    },
+    {
+      "name": "summary",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "type": "json",
+      "required": true
+    },
+    {
+      "name": "counts",
+      "type": "json",
+      "required": true
+    },
+    {
+      "name": "references",
+      "type": "array",
+      "required": true,
+      "items": {
+        "type": "json"
+      }
+    },
+    {
+      "name": "diagnostics",
+      "type": "array",
+      "required": true,
+      "items": {
+        "type": "json"
+      }
+    },
+    {
+      "name": "findings",
+      "type": "json",
+      "required": true
+    },
+    {
+      "name": "operationIds",
+      "type": "array",
+      "required": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "verificationIds",
+      "type": "array",
+      "required": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  ]
+}
