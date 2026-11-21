@@ -6,10 +6,10 @@ metadata:
   labels: [feature, enhancement, refactor]
   route_when: "A feature/enhancement/refactor that deserves a second independent opinion on the plan and on the diff; the task text may be a terse intent in any language."
   links:
-    - { kind: framework, title: "AI Factory 2.19.0", url: "https://github.com/lee-to/ai-factory/tree/2.19.0" }
+    - { kind: framework, title: "AI Factory 2.23.0", url: "https://github.com/lee-to/ai-factory/tree/2.23.0" }
     - { kind: docs, title: "Dev Workflow", url: "https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md" }
   sources:
-    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.19.0" }
+    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.23.0" }
 # Runner intent only — no model or adapter pin. The running MAIster instance
 # binds each slot to a host runner (exact intent match, else the project's
 # default runner of that capability, else an explicit per-project binding).

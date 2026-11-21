@@ -6,10 +6,10 @@ metadata:
   labels: [epic, strategic, planning]
   route_when: "A large/multi-milestone initiative needing a roadmap."
   links:
-    - { kind: framework, title: "AI Factory 2.19.0", url: "https://github.com/lee-to/ai-factory/tree/2.19.0" }
+    - { kind: framework, title: "AI Factory 2.23.0", url: "https://github.com/lee-to/ai-factory/tree/2.23.0" }
     - { kind: docs, title: "Dev Workflow", url: "https://github.com/lee-to/ai-factory/blob/2.x/docs/workflow.md" }
   sources:
-    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.19.0" }
+    - { component: "skills/aif-*, agents/*", origin: "github.com/lee-to/ai-factory@2.23.0" }
 # Runner intent only — no model or adapter pin; the running MAIster instance
 # binds the slot to a host runner.
 runner_profiles:

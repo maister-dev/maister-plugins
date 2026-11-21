@@ -8,6 +8,8 @@ MAIster flows backed by a shared skills + subagents bundle.
 This package is self-contained; nothing here imports from MAIster core.
 Versioned by per-package git tags: `aif/vX.Y.Z` (see the repo root README).
 
+The current bundle tracks AI Factory 2.23.0 (eabdfe9c8015e07ac7334bb9a66c262d94034d08) and retains the MAIster review routing, runner preferences and managed-branch defaults.
+
 ## What changed in `aif/v3.0.1`
 
 Review routing prompts in `dev`, `dev-light`, `autonomous` and `bugfix` now

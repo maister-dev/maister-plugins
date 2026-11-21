@@ -7,7 +7,7 @@ quick-start: [`packages/aif/README.md`](../../packages/aif/README.md) ·
 design note for the v3 line:
 [`specs/2026-09-14-aif-v3-design.md`](specs/2026-09-14-aif-v3-design.md).
 
-- **Provenance:** AI Factory `2.19.0` (git tag `2.19.0`, Apache-2.0); skills
+- **Provenance:** AI Factory `2.23.0` (git tag `2.23.0`, Apache-2.0); skills
   (incl. their `tests/`) + subagents vendored under `packages/aif/capability/`
   with two MAIster patches (`maister:output` routing block in `aif-review`,
   `model: opus` for the Explore subagents in `aif-plan` / `aif-fix` and for
@@ -96,7 +96,7 @@ entry.
   worktree's `.ai-factory/config.yaml` (skip-worktree, never committed):
   MAIster owns the worktree and branch, so AIF works git-aware but must not
   create its own branch. `config/ai-factory.config.yaml` (regenerated from
-  the 2.19.0 template with the same overrides) is the reference a project
+  the 2.23.0 template with the same overrides) is the reference a project
   copies to set language and paths. All committing is deferred to
   `/aif-commit` on the terminal `commit` node; push, merge and promotion stay
   with MAIster.
