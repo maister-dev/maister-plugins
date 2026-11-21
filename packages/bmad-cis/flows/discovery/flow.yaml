@@ -32,7 +32,7 @@ nodes:
   - id: substrate
     type: cli
     action:
-      command: '.claude/skills/bmad-runtime-support/prepare.sh "{{ run.projectSlug }}"'
+      command: '.claude/skills/bmad-cis-runtime-support/prepare.sh "{{ run.projectSlug }}"'
     transitions:
       success: orchestrate
 

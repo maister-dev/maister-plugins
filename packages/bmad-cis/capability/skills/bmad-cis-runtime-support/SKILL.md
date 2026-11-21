@@ -1,5 +1,5 @@
 ---
-name: bmad-runtime-support
+name: bmad-cis-runtime-support
 description: Internal runtime support for the vendored BMAD Creative Intelligence Suite skills. MAIster flows call its preparation script before invoking a CIS workflow.
 ---
 

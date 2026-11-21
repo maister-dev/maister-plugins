@@ -1,5 +1,5 @@
 # BMAD CIS 0.3.2 config created idempotently by
-# bmad-runtime-support/prepare.sh in the cis-discovery flow.
+# bmad-cis-runtime-support/prepare.sh in the cis-discovery flow.
 project_name: "<project-slug>"
 user_name: "MAIster"
 communication_language: "English"

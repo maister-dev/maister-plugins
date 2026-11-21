@@ -15,7 +15,7 @@ metadata:
     - { kind: framework, title: "BMAD Creative Intelligence Suite", url: "https://github.com/bmad-code-org/bmad-module-creative-intelligence-suite" }
   sources:
     - { component: "capability/skills/bmad-cis-{design-thinking,innovation-strategy,problem-solving,storytelling} + maister-agents/*", origin: "github.com/bmad-code-org/bmad-module-creative-intelligence-suite@v0.3.2 (97298b22fee1c7e482710d3a8414adb5cfccccd9)" }
-    - { component: "capability/skills/bmad-runtime-support + capability/reference/LICENSE.bmad", origin: "BMAD v6.11.0 resolver scripts + BMAD CIS v0.3.2 MIT license" }
+    - { component: "capability/skills/bmad-cis-runtime-support + capability/reference/LICENSE.bmad", origin: "BMAD v6.12.4 resolver scripts + BMAD CIS v0.3.2 MIT license" }
 flows:
   - { id: cis-discovery, path: flows/discovery }
 # capability/skills is materialized into `.claude/skills/`; reference/ is
