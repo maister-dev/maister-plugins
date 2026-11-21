@@ -8,7 +8,7 @@ metadata:
   links:
     - { kind: framework, title: "OpenSpec", url: "https://github.com/Fission-AI/OpenSpec" }
   sources:
-    - { component: "capability/skills/* + capability/reference/schema-spec-driven", origin: "github.com/Fission-AI/OpenSpec@v1.12.0" }
+    - { component: "capability/skills/* + capability/reference/schema-spec-driven", origin: "github.com/Fission-AI/OpenSpec@v2.1.1" }
 runner_profiles:
   claude-code:
     capability_agent: claude
@@ -35,7 +35,7 @@ nodes:
   - id: ensure
     type: cli
     action:
-      command: "npm i -g @fission-ai/openspec@1.12.0 && test \"$(openspec --version)\" = \"1.12.0\""
+      command: "npm i -g @fission-ai/openspec@2.1.1 && test \"$(openspec --version)\" = \"2.1.1\""
     transitions:
       success: init
 

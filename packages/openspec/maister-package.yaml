@@ -3,20 +3,20 @@
 # package-root-relative; the version pin is the git tag (openspec/vX.Y.Z),
 # never a field in this file.
 #
-# NOTE: the OpenSpec CLI version this package drives (@fission-ai/openspec@1.12.0)
+# NOTE: the OpenSpec CLI version this package drives (@fission-ai/openspec@2.1.1)
 # is pinned inside every flow command and recorded in metadata.sources. The
 # packaged skills are materialized independently of `openspec init`.
 schemaVersion: 1
 name: openspec
 metadata:
   title: "OpenSpec"
-  summary: "OpenSpec 1.12.0 spec-driven workflow as four MAIster flows, backed by the pinned CLI, the current spec-driven schema, and all 12 upstream Agent Skills materialized into the run workspace."
+  summary: "OpenSpec 2.1.1 spec-driven workflow as four MAIster flows, backed by the pinned CLI, the current spec-driven schema, and all 12 upstream Agent Skills materialized into the run workspace."
   links:
     - { kind: framework, title: "OpenSpec", url: "https://github.com/Fission-AI/OpenSpec" }
     - { kind: docs, title: "OpenSpec on npm", url: "https://www.npmjs.com/package/@fission-ai/openspec" }
   sources:
-    - { component: "capability/skills/* (all 12) + capability/reference/schema-spec-driven", origin: "github.com/Fission-AI/OpenSpec@v1.12.0 (e062b9572be933564ba3899d059377dfa1393e32)" }
-    - { component: "CLI used by flows", origin: "npm:@fission-ai/openspec@1.12.0" }
+    - { component: "capability/skills/* (all 12) + capability/reference/schema-spec-driven", origin: "github.com/Fission-AI/OpenSpec@v2.1.1 (0c737dc1b543249b38b0f4716816fcf493d894dd)" }
+    - { component: "CLI used by flows", origin: "npm:@fission-ai/openspec@2.1.1" }
 flows:
   - { id: os-dev, path: flows/dev }
   - { id: os-propose, path: flows/propose }

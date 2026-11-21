@@ -8,7 +8,7 @@ metadata:
   links:
     - { kind: framework, title: "OpenSpec", url: "https://github.com/Fission-AI/OpenSpec" }
   sources:
-    - { component: "capability/skills/openspec-propose", origin: "github.com/Fission-AI/OpenSpec@v1.12.0" }
+    - { component: "capability/skills/openspec-propose", origin: "github.com/Fission-AI/OpenSpec@v2.1.1" }
 runner_profiles:
   claude-code:
     capability_agent: claude
@@ -24,9 +24,9 @@ compat:
 defaults:
   session_policy: resume
 requirements:
-  - name: "openspec CLI 1.12.0"
-    probe: "test \"$(openspec --version)\" = \"1.12.0\""
-    hint: "run the os-init flow first, or: npm i -g @fission-ai/openspec@1.12.0"
+  - name: "openspec CLI 2.1.1"
+    probe: "test \"$(openspec --version)\" = \"2.1.1\""
+    hint: "run the os-init flow first, or: npm i -g @fission-ai/openspec@2.1.1"
 result:
   export:
     schema: ./schemas/public-result.v1.json

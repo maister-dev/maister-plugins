@@ -1,6 +1,6 @@
 # OpenSpec package reference
 
-The package tracks OpenSpec `v1.12.0`, including all 12 upstream Agent Skills
+The package tracks OpenSpec `v2.1.1`, including all 12 upstream Agent Skills
 and the current spec-driven schema. `setup.sh` and `os-init` install the exact
 matching CLI; `os-dev`, `os-propose`, and `os-apply` fail their launch
 precondition when another version is on `PATH`.

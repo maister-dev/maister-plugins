@@ -1,10 +1,10 @@
-# OpenSpec 1.12 reference bundle
+# OpenSpec 2.1 reference bundle
 
 The package materializes all current upstream Agent Skills from
 `capability/skills/`. This `reference/` subtree keeps the matching schema,
 templates, default config example, and license for provenance and auditability.
 
-Contents (vendored from `@fission-ai/openspec@1.12.0`, MIT):
+Contents (vendored from `@fission-ai/openspec@2.1.1`, MIT):
 
 | Path | What it is |
 | ---- | ---------- |

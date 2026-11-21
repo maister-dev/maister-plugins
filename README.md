@@ -22,7 +22,7 @@ packages/
 | [`aif`](packages/aif/) | AI Factory 2.23.0 workflows: 9 flows (`aif-dev` with claude + codex consensus planning and adversarial cross-review, `aif-dev-light`, `aif-autonomous`, `aif-bugfix`, `aif-evolve`, `aif-roadmap`, `aif-init`, `aif-loop`, `aif-qa`) + vendored skills/agents bundle. |
 | [`pstack`](packages/pstack/) | [pstack](https://github.com/cursor/plugins/tree/main/pstack) evidence-first engineering: 8 MAIster-native flows, full vendored skills/agents bundle, typed result profiles, and the `pstack-rigor` Evaluation Method. |
 | [`superpowers`](packages/superpowers/) | Superpowers v6.3.0: 4 typed governed flows + all 14 upstream skills, with structured design, verification, and review handoffs. |
-| [`openspec`](packages/openspec/) | OpenSpec v1.12.0: 4 spec-driven flows + all 12 upstream Agent Skills, exact-version CLI precondition, and typed change/review handoffs. |
+| [`openspec`](packages/openspec/) | OpenSpec v2.1.1: 4 spec-driven flows + all 12 upstream Agent Skills, exact-version CLI precondition, and typed change/review handoffs. |
 | [`bmad-bmm`](packages/bmad-bmm/) | BMAD Method v6.12.4: planning, canonical Build, two compatibility flows, 45 upstream skills, runtime support, and 5 platform agents. |
 | [`bmad-tea`](packages/bmad-tea/) | BMAD Test Architect v1.24.0: 5 typed quality flows, 9 upstream skills, and Murat as a platform agent. |
 | [`bmad-cis`](packages/bmad-cis/) | BMAD CIS v0.3.2: a governed RAH discovery flow, 4 upstream workflow skills, and 6 creative platform agents. |

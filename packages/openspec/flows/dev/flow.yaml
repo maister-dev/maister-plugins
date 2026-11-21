@@ -9,7 +9,7 @@ metadata:
     - { kind: framework, title: "OpenSpec", url: "https://github.com/Fission-AI/OpenSpec" }
     - { kind: docs, title: "OpenSpec on npm", url: "https://www.npmjs.com/package/@fission-ai/openspec" }
   sources:
-    - { component: "capability/skills/openspec-{propose,apply-change,verify-change,archive-change}", origin: "github.com/Fission-AI/OpenSpec@v1.12.0" }
+    - { component: "capability/skills/openspec-{propose,apply-change,verify-change,archive-change}", origin: "github.com/Fission-AI/OpenSpec@v2.1.1" }
 runner_profiles:
   claude-code:
     capability_agent: claude
@@ -46,9 +46,9 @@ verdict_calibration:
 # ADR-091: refuse launch before any worktree/session if the OpenSpec CLI is
 # absent (run os-init first, which installs it). Probed in the project repo.
 requirements:
-  - name: "openspec CLI 1.12.0"
-    probe: "test \"$(openspec --version)\" = \"1.12.0\""
-    hint: "run the os-init flow first, or: npm i -g @fission-ai/openspec@1.12.0"
+  - name: "openspec CLI 2.1.1"
+    probe: "test \"$(openspec --version)\" = \"2.1.1\""
+    hint: "run the os-init flow first, or: npm i -g @fission-ai/openspec@2.1.1"
 nodes:
   - id: propose
     type: ai_coding
