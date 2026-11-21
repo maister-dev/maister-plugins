@@ -19,7 +19,7 @@ metadata:
   sources:
     - {
         component: "skills/*, agents/*",
-        origin: "github.com/cursor/plugins@7314f723a487ec406b6369fe5865ba034cfed166 (pstack 0.14.8)",
+        origin: "github.com/cursor/plugins@792440e8a560a4a3f63748cdee70491ecd412982 (pstack 0.15.46)",
       }
 flows:
   - { id: pstack-investigate, path: flows/investigate }

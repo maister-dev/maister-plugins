@@ -2,15 +2,10 @@
 
 This directory contains the pstack skills and reusable agent definitions from
 `cursor/plugins`, pinned to commit
-`7314f723a487ec406b6369fe5865ba034cfed166` (pstack `0.14.8`). The upstream
+`792440e8a560a4a3f63748cdee70491ecd412982` (pstack `0.15.46`). The upstream
 license is preserved in `LICENSE.pstack`.
 
-The vendored material is kept close to upstream. The only source adaptations
-are identifier normalization required by portable skill loaders:
-
-- `Poteto Mode` became `poteto-mode`.
-- `Make Bot UI` became `make-bot-ui`.
-- `Comment Sicko` became `comment-sicko`, including its internal reference.
+The package preserves the upstream skill and agent identifiers.
 
 Some skills describe Cursor-native controls such as Task subagents,
 `AskQuestion`, `/loop`, pstack model-selection rules, worktrees, or PR

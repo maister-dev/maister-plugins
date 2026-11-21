@@ -10,12 +10,11 @@ versioned independently with `pstack/vX.Y.Z` tags.
 
 ## Provenance
 
-- Upstream: `cursor/plugins`, pstack `0.14.8`, commit
-  `7314f723a487ec406b6369fe5865ba034cfed166`.
+- Upstream: `cursor/plugins`, pstack `0.15.46`, commit
+  `792440e8a560a4a3f63748cdee70491ecd412982`.
 - License: MIT, preserved at `capability/LICENSE.pstack`.
 - Vendored content: all upstream `skills/` and `agents/` files.
-- Adaptations: only the `poteto-mode`, `make-bot-ui`, and `comment-sicko`
-  identifiers were normalized for portable skill loaders.
+- Identifiers follow the upstream skill and agent names.
 
 ## What changed in `pstack/v1.1.0`
 
@@ -83,7 +82,7 @@ evidence.
 packages:
   - id: pstack
     source: github.com/<org>/maister-plugins
-    version: pstack/v1.1.0
+    version: pstack/v1.2.0
     path: packages/pstack
 ```
 
