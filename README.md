@@ -24,7 +24,7 @@ packages/
 | [`superpowers`](packages/superpowers/) | Superpowers v6.3.0: 4 typed governed flows + all 14 upstream skills, with structured design, verification, and review handoffs. |
 | [`openspec`](packages/openspec/) | OpenSpec v2.1.1: 4 spec-driven flows + all 12 upstream Agent Skills, exact-version CLI precondition, and typed change/review handoffs. |
 | [`bmad-bmm`](packages/bmad-bmm/) | BMAD Method v6.12.4: planning, canonical Build, two compatibility flows, 45 upstream skills, runtime support, and 5 platform agents. |
-| [`bmad-tea`](packages/bmad-tea/) | BMAD Test Architect v1.24.0: 5 typed quality flows, 9 upstream skills, and Murat as a platform agent. |
+| [`bmad-tea`](packages/bmad-tea/) | BMAD Test Architect v4.3.1: 5 typed quality flows, 8 workflows plus the Murat and module skills, and Murat as a platform agent. |
 | [`bmad-cis`](packages/bmad-cis/) | BMAD CIS v0.3.2: a governed RAH discovery flow, 4 upstream workflow skills, and 6 creative platform agents. |
 | [`rah`](packages/rah/) | Native evidence research: bounded depth-1/depth-2 coordinator Flows, read-only researchers and a single-role control, with explicit source/confirmation limits and EN/RU installation guidance. |
 | [`core`](packages/core/) | First-party platform agents for GitHub issue intake (gh or MCP), task triage, Project Brain improvement, and experiment evaluation, plus shared MAIster skills. |

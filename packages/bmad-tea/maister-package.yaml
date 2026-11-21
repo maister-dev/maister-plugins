@@ -4,18 +4,18 @@
 # a field in this file.
 #
 # NOTE: the upstream BMAD Test Architect module version this package vendors
-# (v1.24.0) is recorded in metadata.sources and the README — independent of this
+# (v4.3.1) is recorded in metadata.sources and the README — independent of this
 # package's own git tag.
 schemaVersion: 1
 name: bmad-tea
 metadata:
   title: "BMAD Method — Test Architect (TEA)"
-  summary: "BMAD Test Architect v1.24.0 as five governed MAIster flows plus Murat as a platform agent. Nine current upstream skills cover risk design, automation, NFR evidence, traceability, review, ATDD, framework, CI, and teaching."
+  summary: "BMAD Test Architect v4.3.1 as five governed MAIster flows plus Murat as a platform agent. Eight workflow skills cover risk design, automation, NFR evidence, traceability, review, ATDD, framework, CI, and teaching."
   links:
     - { kind: framework, title: "BMAD Test Architect", url: "https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise" }
   sources:
-    - { component: "capability/skills/bmad-testarch-* + bmad-teach-me-testing (9 upstream skills) + maister-agents/murat-test-architect.md", origin: "github.com/bmad-code-org/bmad-method-test-architecture-enterprise@v1.24.0 (7ba2130193c473b53d2e323b4da9a80697eef88e)" }
-    - { component: "capability/skills/bmad-runtime-support + capability/reference/LICENSE.bmad", origin: "BMAD v6.11.0 resolver scripts + BMAD TEA v1.24.0 MIT license" }
+    - { component: "capability/skills/bmad-tea-* + bmad-tea-teach-me-testing (8 workflows plus the Murat and module skills) + maister-agents/murat-test-architect.md", origin: "github.com/bmad-code-org/bmad-method-test-architecture-enterprise@v4.3.1 (6fba06e8651fecf5144ae93eb715a643d7fd2038)" }
+    - { component: "capability/skills/bmad-tea-runtime-support + capability/reference/LICENSE.bmad", origin: "BMAD v6.12.4 resolver scripts + BMAD TEA v4.3.1 MIT license" }
 flows:
   - { id: tea-test-design, path: flows/test-design }
   - { id: tea-automate, path: flows/automate }

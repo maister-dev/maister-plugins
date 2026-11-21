@@ -41,16 +41,11 @@ branch. There is no interactive chat session:
   Do NOT print a greeting or a capability menu.
 - **MAIster owns git + promotion.** Commit locally with conventional messages
   only. NEVER create worktrees/branches, merge, push, or open PRs.
-- **Config + artifacts.** Load config from `_bmad/tea/config.yaml`; write test
+- **Config + artifacts.** Load config from `the effective core and modules.tea tables in _bmad/config.toml`; write test
   artifacts/plans to the configured `test_artifacts` location
   (`docs/test-artifacts/…`) and test code to the project's conventional test
   locations. No placeholders.
-- **Skills.** Drive the work with the vendored BMad testarch skills under
-  `.claude/skills/`: `bmad-testarch-{test-design,automate,atdd,nfr,trace,test-review,framework,ci}`
-  and `bmad-teach-me-testing`. Honor the current tri-modal create/resume,
-  validate, and edit architecture; in headless runs select the mode required by
-  the node prompt and use parallel workers only when the runtime exposes them.
-  Inside any skill, IGNORE interactive greetings and menus.
+- **Skills.** Invoke the matching `bmad-tea-*` workflow and read its activation contract. Expand and red test generation share `bmad-tea-automate`. Framework and CI setup share `bmad-tea-framework`. Read knowledge fragments from the sibling `bmod-tea/knowledge` directory. Surface any legacy customization error before acting.
 
 ## What you do
 

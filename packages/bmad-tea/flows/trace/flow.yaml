@@ -8,7 +8,7 @@ metadata:
   links:
     - { kind: framework, title: "BMAD Test Architect", url: "https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise" }
   sources:
-    - { component: "capability/skills/bmad-testarch-trace", origin: "github.com/bmad-code-org/bmad-method-test-architecture-enterprise@v1.24.0" }
+    - { component: "capability/skills/bmad-tea-trace", origin: "github.com/bmad-code-org/bmad-method-test-architecture-enterprise@v4.3.1" }
 runner_profiles:
   claude-code:
     capability_agent: claude
@@ -37,7 +37,7 @@ nodes:
   - id: substrate
     type: cli
     action:
-      command: '.claude/skills/bmad-runtime-support/prepare.sh "{{ run.projectSlug }}"'
+      command: '.claude/skills/bmad-tea-runtime-support/prepare.sh "{{ run.projectSlug }}"'
     transitions:
       success: work
 
@@ -53,11 +53,11 @@ nodes:
     action:
       prompt: |
         [MAIster x BMAD — execution contract]
-        You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree on the correct branch. AskUserQuestion is DISABLED — never ask the user; make best-judgment decisions; corrections arrive via the HITL review gate. MAIster owns git + promotion: commit locally only; do NOT create worktrees/branches, merge, push, or open PRs. Inside any BMad skill, IGNORE the "On Activation / greet / present menu / STOP and wait for input" steps — execute the skill's <workflow> body directly. Load config from _bmad/tea/config.yaml.
+        You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree on the correct branch. AskUserQuestion is DISABLED — never ask the user; make best-judgment decisions; corrections arrive via the HITL review gate. MAIster owns git + promotion: commit locally only; do NOT create worktrees/branches, merge, push, or open PRs. Inside any BMad skill, run the configuration and customization steps and skip the interactive greeting and menu. Resolve core and modules.tea from _bmad/config.toml, including team and user overrides. Follow the workflow migration checks before starting work.
 
         THIS NODE — Trace coverage + quality gate:
         - Scope / task: {{ task.prompt }}
-        - Drive the `bmad-testarch-trace` skill autonomously: map requirements to tests (Phase 1 traceability) and make the quality-gate decision (Phase 2: PASS/CONCERNS/FAIL/WAIVED with rationale). Write the traceability + gate artifact under docs/test-artifacts/. No placeholders.
+        - Drive the `bmad-tea-trace` skill autonomously: map requirements to tests (Phase 1 traceability) and make the quality-gate decision (Phase 2: PASS/CONCERNS/FAIL/WAIVED with rationale). Write the traceability + gate artifact under docs/test-artifacts/. No placeholders.
         - Commit locally (e.g. "docs(tea): traceability + gate"). STOP after the artifact — the next node reviews it.
         - End with exactly one result block:
           ```json maister:output

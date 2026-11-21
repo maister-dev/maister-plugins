@@ -2,9 +2,9 @@
 
 MAIster packaging of
 [BMAD Test Architect](https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise)
-`v1.24.0` at commit `7ba2130193c473b53d2e323b4da9a80697eef88e`.
+`v4.3.1` at commit `6fba06e8651fecf5144ae93eb715a643d7fd2038`.
 
-It contains all nine upstream test-architecture skills, one internal runtime
+It contains all eight workflow skills, the Murat skill and the shared bmod-tea knowledge module, one internal runtime
 support skill, Murat under `maister-agents/`, and five governed quality flows.
 Every flow publishes a typed result and exposes a domain-appropriate third
 human decision such as takeover, risk acceptance, or waiver.
