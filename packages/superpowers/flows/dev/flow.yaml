@@ -9,14 +9,10 @@ metadata:
     - { kind: framework, title: "Superpowers", url: "https://github.com/obra/superpowers" }
     - { kind: docs, title: "Brainstorming -> Plan -> Execute", url: "https://github.com/obra/superpowers/tree/main/skills" }
   sources:
-    - { component: "capability/skills/* (all 14)", origin: "github.com/obra/superpowers@v6.3.0" }
+    - { component: "capability/skills/* (all 15)", origin: "github.com/obra/superpowers@v7.0.2" }
 runner_profiles:
   claude-code:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
 # Typed artifacts -> engine_min >= 1.2.0; retry/session policies -> >= 1.4.0;
 # first-class sessions (M42, ADR-114) -> engine_min >= 2.0.0; typed Plan-review
 # artifacts and decisions -> >= 3.1.0.
@@ -38,6 +34,8 @@ result:
 # memory. Design + planning (brainstorm, plan) stay on the implicit `default`
 # session.
 sessions:
+  reviewer: { runner: claude-code }
+  builder: { runner: claude-code }
   implement: { runner: claude-code }
   verify: { runner: claude-code }
   fix: { runner: claude-code }
@@ -72,13 +70,13 @@ nodes:
         [MAIster x superpowers — execution contract]
         You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree MAIster already created on the correct branch. The superpowers skills are installed at .claude/skills/.
         - Invoke the skill(s) named for THIS node via the Skill tool and FOLLOW THEM EXACTLY, including every sub-skill they require. Skills are rigid — never adapt away their discipline. If a skill is even slightly relevant, use it.
-        - AskUserQuestion is disabled. Never ask the user. Make the best-judgment call and record assumptions in your output; MAIster's review gates collect corrections and feed them back as rework comments. Skill steps that wait on a "human partner" are satisfied by those downstream gates — never block inside this node.
+        - MAIster collects owner choices at design and plan review. Keep consequential unknowns open for those gates.
         - MAIster owns git + promotion: do NOT create worktrees, switch/create branches, merge, push, or open PRs. Commit locally only, conventional messages. Tool-permission prompts are handled by the platform.
 
         THIS NODE — Design (superpowers:brainstorming):
         Use the superpowers:brainstorming skill to turn the task into a complete, validated design spec.
         - Task: {{ task.prompt }}
-        - Run brainstorming non-interactively: explore the codebase for context, make the best-judgment choices it would otherwise ask about, and capture them in an explicit "Assumptions & open questions" section for the reviewer. Do NOT use the visual companion.
+        - Start with the owner’s goal and evidence from this project. Size the design to the decision. Record your proposed choices and why; leave consequential unknowns open for the design gate. The following builder_check node supplies the independent builder perspective.
         - Write the design to docs/superpowers/specs/<today YYYY-MM-DD>-<kebab-topic>-design.md. Cover: problem, 2-3 approaches + chosen + why, architecture, components/interfaces, data flow, error handling, testing strategy, assumptions & open questions.
         - STOP after writing + committing the spec (conventional message). Do NOT proceed to writing-plans or any implementation — the next MAIster node plans.
         - End with exactly one structured handoff block:
@@ -104,11 +102,42 @@ nodes:
       maxLoops: 2
       commentsVar: brainstorm_output_error
     transitions:
-      success: design_review
+      success: builder_check
       retry: brainstorm
+
+  - id: builder_check
+    type: ai_coding
+    session: builder
+    settings:
+      agent: superpowers:builder-check
+      workspaceAccess: read
+    action:
+      prompt: |
+        Request: {{ task.prompt }}
+        Draft design: {{ steps.brainstorm.vars.payload }}
+        Read the referenced spec at the current commit. Check it against its callers and tests.
+        Identify which questions have a repository answer and which require the owner's choice.
+        For each owner decision describe the alternatives and the observable consequence of each.
+        Return one result for the design gate and the planner:
+        ```json maister:output
+        {"summary":"...","outcome":"completed","payload":{"designSpec":"...","evidence":[],"ownerDecisions":[]}}
+        ```
+    output:
+      produces:
+        - id: builder-findings
+          kind: ai_judgment
+      result:
+        schema: ./schemas/public-result.v1.json
+        required: true
+    transitions:
+      success: design_review
 
   - id: design_review
     type: human
+    input:
+      requires:
+        - artifact: builder-findings
+          kind: ai_judgment
     finish:
       human:
         role: maintainer
@@ -136,14 +165,16 @@ nodes:
         [MAIster x superpowers — execution contract]
         You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree MAIster already created on the correct branch. The superpowers skills are installed at .claude/skills/.
         - Invoke the skill(s) named for THIS node via the Skill tool and FOLLOW THEM EXACTLY, including every sub-skill they require. Skills are rigid — never adapt away their discipline. If a skill is even slightly relevant, use it.
-        - AskUserQuestion is disabled. Never ask the user. Make the best-judgment call and record assumptions in your output; MAIster's review gates collect corrections and feed them back as rework comments. Skill steps that wait on a "human partner" are satisfied by those downstream gates — never block inside this node.
+        - MAIster collects owner choices at design and plan review. Keep consequential unknowns open for those gates.
         - MAIster owns git + promotion: do NOT create worktrees, switch/create branches, merge, push, or open PRs. Commit locally only, conventional messages. Tool-permission prompts are handled by the platform.
 
         THIS NODE — Plan (superpowers:writing-plans):
         Use the superpowers:writing-plans skill to turn the approved design spec into a bite-sized, TDD-structured implementation plan.
         - Use the approved structured design handoff below; read the referenced spec from disk before planning:
           {{ steps.brainstorm.vars.payload }}
-        - Write the plan to docs/superpowers/plans/<today YYYY-MM-DD>-<kebab-topic>.md with the required plan header, exact file paths, complete code per step, exact test commands + expected output, frequent commits. No placeholders ("TBD"/"handle edge cases"/"write tests for the above" are plan failures).
+        - Read the independent builder findings below. Carry unresolved owner decisions into the typed Plan Review and reconcile them with the approved design.
+          {{ steps.builder_check.vars.payload }}
+        - Write the plan to docs/superpowers/plans/<today YYYY-MM-DD>-<kebab-topic>.md with the required plan header, exact file paths, signatures, a testable deliverable per task, a Review Focus section, test commands and expected observations, frequent commits. No placeholders ("TBD"/"handle edge cases"/"write tests for the above" are plan failures).
         - Run the skill's self-review (spec coverage, placeholder scan, type consistency) and fix inline.
         - TDD discipline = {{ steps.intake.vars.tdd }}.
         - STOP after writing + committing the plan. Do NOT offer execution choices or start implementing — the next MAIster node executes the plan.
@@ -235,21 +266,48 @@ nodes:
         Execution mode = {{ steps.intake.vars.execution }}.
         - Use this approved structured plan handoff and read its exact implementation plan from disk:
           {{ steps.plan.vars.payload }}
-        - If execution mode is "subagent-driven": use superpowers:subagent-driven-development and follow its current v6.3 task-brief, one-review-per-task, re-review, and final broad review protocol exactly. Do not substitute the removed spec-reviewer/code-quality-reviewer split. If governed subagent dispatch is unavailable, fail with an actionable blocker instead of silently changing execution mode.
+        - In subagent-driven mode follow the v7 task briefs, scoped re-reviews, round limit and parked-finding rulings. Use governed workers only when available. Surface unavailable dispatch as a blocker.
         - If execution mode is "inline": use superpowers:executing-plans — execute every plan task in order in this session.
+        - Use the v7 helpers from the run worktree with the exact approved plan. Resume from its progress ledger. Retain rulings, deferred minors and review focus for the independent code_review node, which owns whole-branch review in this graph. Skip the skill’s nested final review and branch finishing.
         - EITHER WAY follow superpowers:test-driven-development for every task: RED (write failing test) -> watch it fail -> GREEN (minimal code) -> REFACTOR. Commit after each green step with a conventional message. TDD discipline = {{ steps.intake.vars.tdd }}.
         - STOP after all plan tasks are implemented, tested, and committed. Do NOT run finishing-a-development-branch and do NOT merge/push — later MAIster nodes verify, review, and finalize.
+        - If the plan is missing, dispatch is unavailable in the selected mode, or the owner must resolve a blocker, emit outcome "blocked" or "needs_input" with the specific cause. Only completed tasks advance to verification.
+        - A maintainer response on re-entry: {{ execution_feedback }}
+        - End with the ledger handoff:
+          ```json maister:output
+          {"summary":"...","outcome":"completed","payload":{"plan":"...","head":"...","rulings":[],"deferredMinors":[],"reviewFocus":[]}}
+          ```
     input:
       requires:
         - artifact: plan-document
           kind: plan
     output:
+      result:
+        schema: ./schemas/public-result.v1.json
+        required: true
       produces:
         - id: impl-diff
           kind: diff
           requiredFor: [review, merge]
+    decide: { from: output.outcome }
     transitions:
-      success: verify
+      completed: verify
+      blocked: execution_blocked
+      needs_input: execution_blocked
+
+  - id: execution_blocked
+    type: human
+    finish:
+      human:
+        role: maintainer
+        decisions: [rework]
+        commentsVar: execution_feedback
+    transitions: { rework: implement }
+    rework:
+      allowedTargets: [implement]
+      workspacePolicies: [keep]
+      maxLoops: 2
+      commentsVar: execution_feedback
 
   - id: verify
     type: ai_coding
@@ -301,8 +359,10 @@ nodes:
 
   - id: code_review
     type: ai_coding
-    # M42: shares the verify session; the prompt also reads the diff fresh.
-    session: verify
+    session: reviewer
+    settings:
+      agent: superpowers:code-reviewer
+      workspaceAccess: read
     retry_policy:
       attempts: 2
       on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
@@ -311,14 +371,15 @@ nodes:
       prompt: |
         [MAIster x superpowers — execution contract]
         You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree MAIster already created on the correct branch. The superpowers skills are installed at .claude/skills/.
-        - Invoke the skill(s) named for THIS node via the Skill tool and FOLLOW THEM EXACTLY. AskUserQuestion is disabled; never ask the user. Commit locally only; do NOT merge/push/PR. Tool-permission prompts are handled by the platform.
+        - Use the review rubric in this session. Return findings and leave the candidate unmodified.
 
         THIS NODE — Code review (superpowers:requesting-code-review):
-        Use the superpowers:requesting-code-review skill to get an independent review of the implementation.
+        Perform the independent whole-branch review using the requesting-code-review rubric.
+        - Read the execution ledger handoff: {{ steps.implement.vars.payload }}
         - Treat this structured verification handoff as evidence, then confirm it against the current tree:
           {{ steps.verify.vars.payload }}
-        - Determine the review range: BASE = the run's base commit (e.g. origin/<base> or the first commit of this branch), HEAD = current commit.
-        - If nested subagent dispatch is available (Task tool), dispatch a code-reviewer subagent with the template at .claude/skills/requesting-code-review/code-reviewer.md. If it is NOT available, perform the review yourself with that exact rubric (read the diff fresh; do not rely on this session's prior context).
+        - Review the entire run diff from the actual run base to the current candidate commit. Record both revisions and flag missing base evidence.
+        - You are the independent reviewer for this revision. Apply the shipped requesting-code-review/code-reviewer.md rubric yourself. Report any open issue and its evidence; leave fixes to the writer.
         - Emit the machine verdict as a single JSON object on its own line for the downstream gate:
           {"verdict":"pass"|"fail","confidence":0-1,"reasons":[...],"issues":[{"severity":"critical"|"important"|"minor","file":"...","note":"..."}]}
         - Also write the full human-readable review (Strengths / Issues by severity / Assessment) to your output.
@@ -433,6 +494,7 @@ nodes:
         - Reconcile the latest structured verification and review handoffs with the current tree:
           design: {{ steps.brainstorm.vars.payload }}
           plan: {{ steps.plan.vars.payload }}
+          ledger: {{ steps.implement.vars.payload }}
           verification: {{ steps.verify.vars.payload }}
           review: {{ steps.code_review.vars.payload }}
         - Ensure ALL work is committed: if the tracked working tree has uncommitted changes, commit them locally with a conventional message. The tree MUST be clean.
@@ -440,7 +502,7 @@ nodes:
         - Structured-output correction from a malformed prior attempt: {{ finalize_output_error }}
         - End with exactly one result block:
           ```json maister:output
-          {"summary":"...","outcome":"completed","payload":{"design":{},"plan":{},"verification":{},"review":{}}}
+          {"summary":"...","outcome":"completed","payload":{"design":{},"plan":{},"verification":{},"review":{},"rulings":[],"deferredMinors":[]}}
           ```
     pre_finish:
       gates:

@@ -1,0 +1,115 @@
+schemaVersion: 1
+name: sp-execute-pr
+metadata:
+  title: "Superpowers — Execute an approved plan through PR merge"
+  summary: "Implement an approved plan, verify the candidate, publish a ready PR and wait for the required GitHub build and merge."
+  labels: [delivery, ci, superpowers]
+runner_profiles:
+  claude-code: { capability_agent: claude }
+compat: { engine_min: 3.15.0 }
+sessions:
+  writer: { runner: claude-code }
+autonomous_completion:
+  ci: remote_ci
+  gates: [{ node: verify, gate: project-verification }]
+  review: { node: candidate_review, gate: whole-branch-review }
+  failure_reasons: [wait_timeout, rework_exhausted]
+nodes:
+  - id: implement
+    type: ai_coding
+    session: writer
+    action:
+      prompt: |
+        Approved plan and scope: {{ task.prompt }}
+        Read the exact approved plan and linked spec. Use @skill:executing-plans and @skill:test-driven-development in the allocated worktree.
+        Execute the tasks inline, preserving the task ledger. Record rulings and deferred minors. Commit the tested candidate.
+        The project supplies its executable scripts/verify and a required build check. Preserve these checks.
+        MAIster owns whole-branch review, PR creation and promotion. Do not start a nested final review or perform remote Git operations.
+        On rework, read the feedback and fix the reported cause before requesting verification of the new commit.
+        CI feedback: {{ ci_feedback }}
+        Maintainer feedback: {{ review_comments }}
+        If the task has no approved plan, report the missing input to the maintainer.
+        End with a maister:output block using {"summary":"...","outcome":"completed","payload":{"plan":"...","head":"...","rulings":[],"deferredMinors":[]}}.
+        For a blocker use outcome "blocked" or "needs_input" and explain the required decision.
+    output:
+      result:
+        schema: ./schemas/public-result.v1.json
+        required: true
+    decide: { from: output.outcome }
+    transitions: { completed: verify, blocked: intervention, needs_input: intervention }
+  - id: verify
+    type: cli
+    action:
+      command: git ls-files --error-unmatch -- scripts/verify
+    pre_finish:
+      gates:
+        - id: project-verification
+          kind: command_check
+          mode: blocking
+          command: 'test -x ./scripts/verify && ./scripts/verify && test -z "$(git status --porcelain)"'
+    transitions: { success: publish }
+  - id: publish
+    type: publish
+    pr: ready
+    transitions: { success: remote_ci }
+  - id: remote_ci
+    type: wait
+    timeout: 3600
+    on:
+      kind: ci
+      publication: publish
+      transport: pull
+      issuer: github-actions
+      checks: [build]
+    transitions:
+      success: candidate_review
+      failure: implement
+      stale: intervention
+      cancelled: intervention
+      timeout: { end: failed, reason: wait_timeout }
+      exhausted: { end: failed, reason: rework_exhausted }
+    rework:
+      allowedTargets: [implement]
+      workspacePolicies: [keep]
+      maxLoops: 2
+      commentsVar: ci_feedback
+      onExhaustion: exhausted
+  - id: candidate_review
+    type: cli
+    action: { command: "git rev-parse --verify HEAD" }
+    pre_finish:
+      gates:
+        - id: whole-branch-review
+          kind: ai_judgment
+          mode: blocking
+          prompt: |
+            Review the exact published revision against the owner's approved plan. Inspect the whole branch diff,
+            acceptance tests, review focus and any changes to verification. Return a JSON verdict (pass or fail),
+            risk (low, medium or high), numeric confidence in [0,1] and evidence for each finding.
+    transitions: { success: await_merge }
+  - id: await_merge
+    type: wait
+    timeout: 86400
+    on: { kind: pr, publication: publish }
+    transitions:
+      merged: done
+      closed: intervention
+      conflict: intervention
+      stale: intervention
+      cancelled: intervention
+      timeout: { end: failed, reason: wait_timeout }
+  - id: intervention
+    type: human
+    finish:
+      human:
+        role: maintainer
+        decisions: [rework]
+        commentsVar: review_comments
+    transitions: { rework: implement }
+    rework:
+      allowedTargets: [implement]
+      workspacePolicies: [keep]
+      maxLoops: 2
+      commentsVar: review_comments
+      resetTargets: [remote_ci]
+

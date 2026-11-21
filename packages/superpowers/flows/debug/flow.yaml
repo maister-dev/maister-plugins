@@ -9,16 +9,10 @@ metadata:
     - { kind: framework, title: "Superpowers", url: "https://github.com/obra/superpowers" }
     - { kind: docs, title: "systematic-debugging", url: "https://github.com/obra/superpowers/tree/main/skills/systematic-debugging" }
   sources:
-    - { component: "capability/skills/* (all 14)", origin: "github.com/obra/superpowers@v6.3.0" }
+    - { component: "capability/skills/* (all 15)", origin: "github.com/obra/superpowers@v7.0.2" }
 runner_profiles:
   claude-code:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
-# Pinned to the M42 2.0.0 engine baseline for this package release (single
-# reused default session; no sessions: map needed).
 compat:
   engine_min: 3.7.0
 defaults:
@@ -30,6 +24,8 @@ result:
     required: true
 verdict_calibration:
   confidence_min: 0.7
+sessions:
+  reviewer: { runner: claude-code }
 nodes:
   - id: debug
     type: ai_coding
@@ -131,6 +127,10 @@ nodes:
 
   - id: code_review
     type: ai_coding
+    session: reviewer
+    settings:
+      agent: superpowers:code-reviewer
+      workspaceAccess: read
     retry_policy:
       attempts: 2
       on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
@@ -139,14 +139,14 @@ nodes:
       prompt: |
         [MAIster x superpowers — execution contract]
         You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree MAIster already created on the correct branch. The superpowers skills are installed at .claude/skills/.
-        - Invoke the skill(s) named for THIS node via the Skill tool and FOLLOW THEM EXACTLY. AskUserQuestion is disabled; never ask the user. Commit locally only; do NOT merge/push/PR. Tool-permission prompts are handled by the platform.
+        - Use the review rubric in this session. Return findings and leave the candidate unmodified.
 
         THIS NODE — Code review (superpowers:requesting-code-review):
         Use the superpowers:requesting-code-review skill to independently review the fix.
         - Treat this structured verification handoff as evidence, then confirm it against the current tree:
           {{ steps.verify.vars.payload }}
         - Range: BASE = the run's base commit, HEAD = current commit.
-        - If nested subagent dispatch is available (Task tool), dispatch a code-reviewer subagent with .claude/skills/requesting-code-review/code-reviewer.md; otherwise perform the review yourself with that exact rubric (read the diff fresh).
+        - You are the independent reviewer for this revision. Apply the shipped requesting-code-review/code-reviewer.md rubric yourself. Report any open issue and its evidence; leave fixes to the writer.
         - Emit the machine verdict as a single JSON object on its own line:
           {"verdict":"pass"|"fail","confidence":0-1,"reasons":[...],"issues":[{"severity":"critical"|"important"|"minor","file":"...","note":"..."}]}
         - Also write the full human-readable review (Strengths / Issues by severity / Assessment) to your output.

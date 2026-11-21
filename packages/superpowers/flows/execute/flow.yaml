@@ -9,14 +9,10 @@ metadata:
     - { kind: framework, title: "Superpowers", url: "https://github.com/obra/superpowers" }
     - { kind: docs, title: "executing-plans / subagent-driven-development", url: "https://github.com/obra/superpowers/tree/main/skills" }
   sources:
-    - { component: "capability/skills/* (all 14)", origin: "github.com/obra/superpowers@v6.3.0" }
+    - { component: "capability/skills/* (all 15)", origin: "github.com/obra/superpowers@v7.0.2" }
 runner_profiles:
   claude-code:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
 # Typed artifacts -> engine_min >= 1.2.0; retry/session policies -> >= 1.4.0;
 # first-class sessions (M42, ADR-114) -> engine_min >= 2.0.0.
 compat:
@@ -36,6 +32,7 @@ result:
 # (impl-diff, gate result), not session memory. The entry `execute` node runs on
 # the implicit `default` session.
 sessions:
+  reviewer: { runner: claude-code }
   verify: { runner: claude-code }
   fix: { runner: claude-code }
   finalize: { runner: claude-code }
@@ -68,17 +65,44 @@ nodes:
         THIS NODE — Execute the existing plan:
         Execution mode = {{ steps.intake.vars.execution }}.
         - The task identifies the plan to execute: {{ task.prompt }}. Locate it under docs/superpowers/plans/ (or the path given). Review it critically FIRST; if it has critical gaps, record them in your notes and proceed with best judgment (do not silently guess past a real blocker — finish with a clear report instead).
-        - If execution mode is "subagent-driven": use superpowers:subagent-driven-development and follow its current v6.3 task-brief, one-review-per-task, re-review, and final broad review protocol exactly. Do not substitute the removed spec-reviewer/code-quality-reviewer split. If governed subagent dispatch is unavailable, fail with an actionable blocker instead of silently changing execution mode.
+        - In subagent-driven mode follow the v7 task briefs, scoped re-reviews, round limit and parked-finding rulings. Use governed workers only when available. Surface unavailable dispatch as a blocker.
         - If execution mode is "inline": use superpowers:executing-plans — execute every task in order in this session.
+        - Use the v7 helpers from the run worktree with the exact approved plan. Resume from its progress ledger. Retain rulings, deferred minors and review focus for the independent code_review node, which owns whole-branch review in this graph. Skip the skill’s nested final review and branch finishing.
         - EITHER WAY follow superpowers:test-driven-development for every task (RED -> watch fail -> GREEN -> REFACTOR). Commit after each green step (conventional messages). TDD discipline = {{ steps.intake.vars.tdd }}.
         - STOP after all plan tasks are implemented, tested, and committed — later nodes verify, review, and finalize. Do NOT run finishing-a-development-branch and do NOT merge/push.
+        - If the plan is missing, dispatch is unavailable in the selected mode, or the owner must resolve a blocker, emit outcome "blocked" or "needs_input" with the specific cause. Only completed tasks advance to verification.
+        - A maintainer response on re-entry: {{ execution_feedback }}
+        - End with the ledger handoff:
+          ```json maister:output
+          {"summary":"...","outcome":"completed","payload":{"plan":"...","head":"...","rulings":[],"deferredMinors":[],"reviewFocus":[]}}
+          ```
     output:
+      result:
+        schema: ./schemas/public-result.v1.json
+        required: true
       produces:
         - id: impl-diff
           kind: diff
           requiredFor: [review, merge]
+    decide: { from: output.outcome }
     transitions:
-      success: verify
+      completed: verify
+      blocked: execution_blocked
+      needs_input: execution_blocked
+
+  - id: execution_blocked
+    type: human
+    finish:
+      human:
+        role: maintainer
+        decisions: [rework]
+        commentsVar: execution_feedback
+    transitions: { rework: execute }
+    rework:
+      allowedTargets: [execute]
+      workspacePolicies: [keep]
+      maxLoops: 2
+      commentsVar: execution_feedback
 
   - id: verify
     type: ai_coding
@@ -127,8 +151,10 @@ nodes:
 
   - id: code_review
     type: ai_coding
-    # M42: shares the verify session; the prompt also reads the diff fresh.
-    session: verify
+    session: reviewer
+    settings:
+      agent: superpowers:code-reviewer
+      workspaceAccess: read
     retry_policy:
       attempts: 2
       on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
@@ -137,14 +163,15 @@ nodes:
       prompt: |
         [MAIster x superpowers — execution contract]
         You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree MAIster already created on the correct branch. The superpowers skills are installed at .claude/skills/.
-        - Invoke the skill(s) named for THIS node via the Skill tool and FOLLOW THEM EXACTLY. AskUserQuestion is disabled; never ask the user. Commit locally only; do NOT merge/push/PR. Tool-permission prompts are handled by the platform.
+        - Use the review rubric in this session. Return findings and leave the candidate unmodified.
 
         THIS NODE — Code review (superpowers:requesting-code-review):
         Use the superpowers:requesting-code-review skill to independently review the implementation against the plan.
+        - Read the execution ledger handoff: {{ steps.execute.vars.payload }}
         - Treat this structured verification handoff as evidence, then confirm it against the current tree:
           {{ steps.verify.vars.payload }}
         - Range: BASE = the run's base commit, HEAD = current commit.
-        - If nested subagent dispatch is available (Task tool), dispatch a code-reviewer subagent with .claude/skills/requesting-code-review/code-reviewer.md; otherwise perform the review yourself with that exact rubric (read the diff fresh).
+        - You are the independent reviewer for this revision. Apply the shipped requesting-code-review/code-reviewer.md rubric yourself. Report any open issue and its evidence; leave fixes to the writer.
         - Emit the machine verdict as a single JSON object on its own line:
           {"verdict":"pass"|"fail","confidence":0-1,"reasons":[...],"issues":[{"severity":"critical"|"important"|"minor","file":"...","note":"..."}]}
         - Also write the full human-readable review (Strengths / Issues by severity / Assessment) to your output.
@@ -252,6 +279,7 @@ nodes:
         THIS NODE — Finalize (superpowers:finishing-a-development-branch, MAIster-neutralized):
         - Run the project's full verification one final time (superpowers:verification-before-completion) and confirm it passes with fresh evidence.
         - Reconcile the latest structured verification and review handoffs with the current tree:
+          ledger: {{ steps.execute.vars.payload }}
           verification: {{ steps.verify.vars.payload }}
           review: {{ steps.code_review.vars.payload }}
         - Ensure ALL work is committed: commit any tracked changes locally with a conventional message. The tree MUST be clean.
@@ -259,7 +287,7 @@ nodes:
         - Structured-output correction from a malformed prior attempt: {{ finalize_output_error }}
         - End with exactly one result block:
           ```json maister:output
-          {"summary":"...","outcome":"completed","payload":{"verification":{},"review":{}}}
+          {"summary":"...","outcome":"completed","payload":{"verification":{},"review":{},"rulings":[],"deferredMinors":[]}}
           ```
     pre_finish:
       gates:

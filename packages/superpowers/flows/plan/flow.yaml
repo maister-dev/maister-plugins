@@ -9,14 +9,10 @@ metadata:
     - { kind: framework, title: "Superpowers", url: "https://github.com/obra/superpowers" }
     - { kind: docs, title: "brainstorming + writing-plans", url: "https://github.com/obra/superpowers/tree/main/skills" }
   sources:
-    - { component: "capability/skills/* (all 14)", origin: "github.com/obra/superpowers@v6.3.0" }
+    - { component: "capability/skills/* (all 15)", origin: "github.com/obra/superpowers@v7.0.2" }
 runner_profiles:
   claude-code:
     capability_agent: claude
-    adapter: claude
-    model: claude-opus-4-8
-    provider:
-      kind: anthropic
 # Mutation gate (must_touch) -> engine_min >= 1.3.0; retry/session -> >= 1.4.0;
 # typed Plan-review artifacts and decisions -> >= 3.1.0.
 compat:
@@ -28,6 +24,8 @@ result:
     schema: ./schemas/public-result.v1.json
     from: [finalize, deferred]
     required: true
+sessions:
+  builder: { runner: claude-code }
 nodes:
   - id: brainstorm
     type: ai_coding
@@ -42,13 +40,13 @@ nodes:
         [MAIster x superpowers — execution contract]
         You run NON-INTERACTIVELY inside MAIster, in an isolated git worktree MAIster already created on the correct branch. The superpowers skills are installed at .claude/skills/.
         - Invoke the skill(s) named for THIS node via the Skill tool and FOLLOW THEM EXACTLY, including every sub-skill they require. Skills are rigid — never adapt away their discipline. If a skill is even slightly relevant, use it.
-        - AskUserQuestion is disabled. Never ask the user. Make the best-judgment call and record assumptions; MAIster's review gates collect corrections as rework comments. Skill steps that wait on a "human partner" are satisfied by those gates — never block inside this node.
+        - AskUserQuestion is disabled. Never ask the user. Use repository evidence for minor decisions and preserve consequential unknowns for owner review. Skill steps that wait on a "human partner" are satisfied by those gates — never block inside this node.
         - MAIster owns git + promotion: do NOT create worktrees, switch/create branches, merge, push, or open PRs. Commit locally only, conventional messages. Tool-permission prompts are handled by the platform.
 
         THIS NODE — Design (superpowers:brainstorming):
         Use the superpowers:brainstorming skill to turn the task into a complete, validated design spec.
         - Task: {{ task.prompt }}
-        - Run brainstorming non-interactively: explore the codebase for context, make the best-judgment choices it would otherwise ask about, and capture them in an explicit "Assumptions & open questions" section. Do NOT use the visual companion.
+        - Start with the owner’s goal and evidence from this project. Size the design to the decision. Record your proposed choices and why; leave consequential unknowns open for the design gate. The following builder_check node supplies the independent builder perspective.
         - Write the design to docs/superpowers/specs/<today YYYY-MM-DD>-<kebab-topic>-design.md covering: problem, 2-3 approaches + chosen + why, architecture, components/interfaces, data flow, error handling, testing strategy, assumptions & open questions.
         - STOP after writing + committing the spec — the next MAIster node turns it into a plan.
         - End with exactly one structured handoff block:
@@ -74,11 +72,42 @@ nodes:
       maxLoops: 2
       commentsVar: brainstorm_output_error
     transitions:
-      success: design_review
+      success: builder_check
       retry: brainstorm
+
+  - id: builder_check
+    type: ai_coding
+    session: builder
+    settings:
+      agent: superpowers:builder-check
+      workspaceAccess: read
+    action:
+      prompt: |
+        Request: {{ task.prompt }}
+        Draft design: {{ steps.brainstorm.vars.payload }}
+        Read the referenced spec at the current commit. Check it against its callers and tests.
+        Identify which questions have a repository answer and which require the owner's choice.
+        For each owner decision describe the alternatives and the observable consequence of each.
+        Return one result for the design gate and the planner:
+        ```json maister:output
+        {"summary":"...","outcome":"completed","payload":{"designSpec":"...","evidence":[],"ownerDecisions":[]}}
+        ```
+    output:
+      produces:
+        - id: builder-findings
+          kind: ai_judgment
+      result:
+        schema: ./schemas/public-result.v1.json
+        required: true
+    transitions:
+      success: design_review
 
   - id: design_review
     type: human
+    input:
+      requires:
+        - artifact: builder-findings
+          kind: ai_judgment
     finish:
       human:
         role: maintainer
@@ -113,7 +142,9 @@ nodes:
         Use the superpowers:writing-plans skill to turn the approved design spec into a bite-sized, TDD-structured implementation plan.
         - Use the approved structured design handoff below; read the referenced spec from disk before planning:
           {{ steps.brainstorm.vars.payload }}
-        - Write the plan to docs/superpowers/plans/<today YYYY-MM-DD>-<kebab-topic>.md with the required plan header, exact file paths, complete code per step, exact test commands + expected output, frequent commits. No placeholders.
+        - Read the independent builder findings below. Carry unresolved owner decisions into the typed Plan Review and reconcile them with the approved design.
+          {{ steps.builder_check.vars.payload }}
+        - Write the plan to docs/superpowers/plans/<today YYYY-MM-DD>-<kebab-topic>.md with the required plan header, exact file paths, signatures, a testable deliverable per task, a Review Focus section, test commands and expected observations, frequent commits. No placeholders.
         - Run the skill's self-review (spec coverage, placeholder scan, type consistency) and fix inline.
         - STOP after writing + committing the plan. Do NOT offer execution choices or implement — this is a planning-only flow; execution happens later via sp-execute.
 

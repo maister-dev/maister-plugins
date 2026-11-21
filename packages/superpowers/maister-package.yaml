@@ -6,20 +6,21 @@ schemaVersion: 1
 name: superpowers
 metadata:
   title: "Superpowers"
-  summary: "Superpowers v6.3.0 as four MAIster-native development flows plus the complete 14-skill upstream bundle, with explicit design, plan, verification, review, and human rework gates."
+  summary: "Superpowers v7.0.2 as five MAIster-native development flows plus the complete 15-skill upstream bundle, with explicit design, plan, verification, review, and human rework gates."
   links:
     - { kind: framework, title: "Superpowers", url: "https://github.com/obra/superpowers" }
     - { kind: docs, title: "Package reference", url: "https://github.com/obra/superpowers#readme" }
   # Vendored upstream component version recorded here (no dedicated field yet —
   # the package tag is its own version; this records WHAT was vendored).
   sources:
-    - { component: "capability/skills/* (all 14)", origin: "github.com/obra/superpowers@v6.3.0 (b36e0829c6d0140e93cfef2ca599b1b07d4a7797)" }
-    - { component: "capability/LICENSE.superpowers", origin: "github.com/obra/superpowers@v6.3.0 (MIT)" }
+    - { component: "capability/skills/* (all 15)", origin: "github.com/obra/superpowers@v7.0.2 (22f0b463e7a5e579904dd6211a520321035526f7)" }
+    - { component: "capability/LICENSE.superpowers", origin: "github.com/obra/superpowers@v7.0.2 (MIT)" }
 flows:
   - { id: sp-dev, path: flows/dev }
   - { id: sp-debug, path: flows/debug }
   - { id: sp-plan, path: flows/plan }
   - { id: sp-execute, path: flows/execute }
+  - { id: sp-execute-pr, path: flows/execute-pr }
 capabilities:
   - { id: superpowers-bundle, path: capability }
 # MCP server templates ship here when a package needs them ({id, transport,
