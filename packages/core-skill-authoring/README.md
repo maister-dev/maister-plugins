@@ -1,6 +1,6 @@
 # MAIster Core Skill Authoring package
 
-First-party skills for creating and maintaining reusable skills consumed by
+Skills for creating and maintaining reusable skills consumed by
 MAIster agent sessions. The package is skill-only: it ships no flows, platform
 agents, or MCP templates.
 
@@ -11,6 +11,13 @@ agents, or MCP templates.
 - References, scripts, examples, templates, and reusable assets.
 - Schema validation, trigger testing, quality review, and maintenance.
 - Packaging skills for predictable use across supported agent runtimes.
+
+## Skill sources
+
+- [affaan-m/everything-claude-code v2.2.3](https://github.com/affaan-m/everything-claude-code/tree/v2.2.3) — `prompt-optimizer`, `skill-comply`, `skill-scout`, `skill-stocktake`.
+- [Jeffallan/claude-skills v0.4.21](https://github.com/Jeffallan/claude-skills/tree/v0.4.21) — `prompt-engineer`.
+
+License notices ship in `capability/reference/`.
 
 ## Adding a skill
 
