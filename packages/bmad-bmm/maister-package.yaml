@@ -3,20 +3,20 @@
 # package-root-relative; the version pin is the git tag (bmad-bmm/vX.Y.Z), never
 # a field in this file.
 #
-# NOTE: the upstream BMAD Method version this package vendors (v6.11.0, the BMM
+# NOTE: the upstream BMAD Method version this package vendors (v6.12.4, the BMM
 # module) is recorded in metadata.sources and pinned in the README — it is
 # independent of this package's own git tag.
 schemaVersion: 1
 name: bmad-bmm
 metadata:
   title: "BMAD Method — Core SDLC (BMM)"
-  summary: "BMAD Method v6.11.0 as MAIster flows for planning, the current Build loop, and compatibility entry points. Five upstream personas ship as platform agents; 44 upstream skills plus version-matched runtime support drive the work."
+  summary: "BMAD Method v6.12.4 as MAIster flows for planning, the current Build loop, and compatibility entry points. Five upstream personas ship as platform agents; 45 upstream skills plus version-matched runtime support drive the work."
   links:
     - { kind: framework, title: "BMAD Method", url: "https://github.com/bmad-code-org/BMAD-METHOD" }
-    - { kind: docs, title: "BMAD Method v6.11.0 release", url: "https://github.com/bmad-code-org/BMAD-METHOD/releases/tag/v6.11.0" }
+    - { kind: docs, title: "BMAD Method v6.12.4 release", url: "https://github.com/bmad-code-org/BMAD-METHOD/releases/tag/v6.12.4" }
   sources:
-    - { component: "capability/skills/* (44 upstream workflow/core/shim skills) + maister-agents/* (five upstream personas)", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.11.0 (9ce3c397c9b238de96f7365da8019f6f66b059da)" }
-    - { component: "capability/skills/bmad-runtime-support + capability/reference/LICENSE.bmad", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.11.0 scripts and MIT license" }
+    - { component: "capability/skills/* (45 upstream workflow/core/shim skills) + maister-agents/* (five upstream personas)", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.12.4 (bab9082c3e884e0d72c759bcd1a6d90bcc01be84)" }
+    - { component: "capability/skills/bmad-runtime-support + capability/reference/LICENSE.bmad", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.12.4 scripts and MIT license" }
 flows:
   - { id: bmm-plan, path: flows/plan }
   - { id: bmm-build, path: flows/build }

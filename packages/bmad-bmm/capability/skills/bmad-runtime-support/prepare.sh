@@ -15,7 +15,7 @@ case "$project_slug" in
 esac
 
 if ! command -v uv >/dev/null 2>&1; then
-  echo "BMAD Method v6.11.0 requires uv with Python 3.11+" >&2
+  echo "BMAD Method v6.12.4 requires uv with Python 3.11+" >&2
   exit 69
 fi
 
@@ -77,4 +77,4 @@ if [ ! -f "$legacy_config" ]; then
     > "$legacy_config"
 fi
 
-echo "[bmm substrate] BMAD v6.11.0 runtime ready"
+echo "[bmm substrate] BMAD v6.12.4 runtime ready"

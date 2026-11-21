@@ -1,6 +1,6 @@
 # BMAD Method BMM package reference
 
-The package tracks BMAD Method `v6.11.0`. It vendors 44 upstream skills from
+The package tracks BMAD Method `v6.12.4`. It vendors 45 upstream skills from
 core, BMM plan/ship, and v6 compatibility shims. Five current personas—Mary,
 John, Sally, Winston, and Amelia—are MAIster platform agents in
 `maister-agents/`; retired Paige is not carried forward.

@@ -2,13 +2,13 @@ schemaVersion: 1
 name: bmm-build
 metadata:
   title: "BMAD — Build"
-  summary: "Official BMAD 6.11 implementation loop -> independent code review -> human approve, rework, or takeover, with a typed public result for parent orchestrators."
+  summary: "Official BMAD 6.12 implementation loop -> independent code review -> human approve, rework, or takeover, with a typed public result for parent orchestrators."
   labels: [implementation, build, dev, tdd, bmad]
   route_when: "Build, fix, refactor, or implement a story with the current BMAD workflow and governed review."
   links:
     - { kind: framework, title: "BMAD Method", url: "https://github.com/bmad-code-org/BMAD-METHOD" }
   sources:
-    - { component: "capability/skills/bmad-{build,code-review}", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.11.0" }
+    - { component: "capability/skills/bmad-{build,code-review}", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.12.4" }
 compat:
   engine_min: 3.7.0
 runner_profiles:

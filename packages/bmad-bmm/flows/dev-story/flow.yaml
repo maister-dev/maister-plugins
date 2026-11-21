@@ -2,13 +2,13 @@ schemaVersion: 1
 name: bmm-dev-story
 metadata:
   title: "BMAD — Dev Story (v6 compatibility)"
-  summary: "Compatibility flow for the former create-story/dev-story cycle. Existing automation keeps its flow id; new work should use bmm-build, the official BMAD 6.11 implementation loop."
+  summary: "Compatibility flow for the former create-story/dev-story cycle. Existing automation keeps its flow id; new work should use bmm-build, the official BMAD 6.12 implementation loop."
   labels: [implementation, story, dev, tdd, bmad]
   route_when: "Implement the next (or a specified) story end-to-end with test-first discipline and review."
   links:
     - { kind: framework, title: "BMAD Method", url: "https://github.com/bmad-code-org/BMAD-METHOD" }
   sources:
-    - { component: "capability/skills/bmad-{create-story,dev-story,code-review}", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.11.0" }
+    - { component: "capability/skills/bmad-{create-story,dev-story,code-review}", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.12.4" }
 runner_profiles:
   claude-code:
     capability_agent: claude

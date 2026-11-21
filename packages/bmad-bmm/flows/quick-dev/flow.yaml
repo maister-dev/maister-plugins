@@ -8,7 +8,7 @@ metadata:
   links:
     - { kind: framework, title: "BMAD Method", url: "https://github.com/bmad-code-org/BMAD-METHOD" }
   sources:
-    - { component: "capability/skills/bmad-build + bmad-quick-dev compatibility shim", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.11.0" }
+    - { component: "capability/skills/bmad-build + bmad-quick-dev compatibility shim", origin: "github.com/bmad-code-org/BMAD-METHOD@v6.12.4" }
 runner_profiles:
   claude-code:
     capability_agent: claude
