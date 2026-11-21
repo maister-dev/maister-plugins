@@ -7,7 +7,7 @@ MAIster flows that drive the `specify` CLI and its agent-native skills for
 Claude Code or Codex.
 
 Versioned by per-package git tags: `spec-kit/vX.Y.Z`. The **Spec Kit version is
-pinned to `github/spec-kit@v0.10.3`** in `setup.sh` and both init flows'
+pinned to `github/spec-kit@v1.4.3`** in `setup.sh` and both init flows'
 installer.
 
 ## Unreleased

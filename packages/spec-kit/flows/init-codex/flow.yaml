@@ -8,7 +8,7 @@ metadata:
   links:
     - { kind: framework, title: "Spec Kit", url: "https://github.com/github/spec-kit" }
   sources:
-    - { component: "capability/reference/*", origin: "git:github.com/github/spec-kit@v0.10.3" }
+    - { component: "capability/reference/*", origin: "git:github.com/github/spec-kit@v1.4.3" }
 runner_profiles:
   codex:
     capability_agent: codex
@@ -32,11 +32,24 @@ requirements:
     hint: "install git on the supervisor/web host"
 nodes:
   # Deterministic installer — a `cli` node (no agent, no permission HITL).
-  # Idempotent: installs the pinned specify CLI only if absent.
+  # Idempotent: installs the pinned specify CLI when missing or at a different version.
   - id: ensure
     type: cli
     action:
-      command: "command -v specify >/dev/null 2>&1 || { command -v uv >/dev/null 2>&1 && uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@v0.10.3 || pipx install 'git+https://github.com/github/spec-kit.git@v0.10.3'; }"
+      command: |
+        set -eu
+        if command -v specify >/dev/null 2>&1 && specify version --features | grep -Fx 'Spec Kit CLI: 1.4.3'; then
+          exit 0
+        fi
+        if command -v uv >/dev/null 2>&1; then
+          uv tool install --force specify-cli --from git+https://github.com/github/spec-kit.git@v1.4.3
+        elif command -v pipx >/dev/null 2>&1; then
+          pipx install --force 'git+https://github.com/github/spec-kit.git@v1.4.3'
+        else
+          echo 'Spec Kit 1.4.3 requires uv or pipx for installation' >&2
+          exit 1
+        fi
+        specify version --features | grep -Fx 'Spec Kit CLI: 1.4.3'
     transitions:
       success: scaffold
 
@@ -45,14 +58,14 @@ nodes:
   # writes .specify/ (memory/constitution.md, scripts, templates) + the Codex
   # skills .agents/skills/speckit-*. It does NOT touch git: the branch-creating
   # `before_specify` hook only exists in the opt-in `git` extension, which init
-  # never installs (verified vs v0.10.3). Running scaffold as a `cli` node (no
+  # never installs (verified vs v1.4.3). Running scaffold as a `cli` node (no
   # agent session) guarantees the speckit skills are on disk BEFORE the first
   # agent session (constitution) starts, so `$speckit-*` load from project
   # `.agents/skills/` at session start.
   - id: scaffold
     type: cli
     action:
-      command: 'specify init --here --force --integration codex --integration-options="--skills" --ignore-agent-tools'
+      command: 'specify init --here --force --non-interactive --integration codex --integration-options="--skills" --ignore-agent-tools'
     pre_finish:
       gates:
         - id: skills-scaffolded

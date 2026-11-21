@@ -8,7 +8,7 @@ metadata:
   links:
     - { kind: framework, title: "Spec Kit", url: "https://github.com/github/spec-kit" }
   sources:
-    - { component: "capability/reference/*", origin: "git:github.com/github/spec-kit@v0.10.3" }
+    - { component: "capability/reference/*", origin: "git:github.com/github/spec-kit@v1.4.3" }
 runner_profiles:
   claude-code:
     capability_agent: claude
@@ -42,8 +42,8 @@ verdict_calibration:
 # base branch so this run's worktree loads /speckit-* at session start. Probed in
 # the project repo.
 requirements:
-  - name: "specify CLI present"
-    probe: "command -v specify"
+  - name: "Spec Kit CLI 1.4.3"
+    probe: "specify version --features | grep -Fx 'Spec Kit CLI: 1.4.3'"
     hint: "run the sk-init flow first (it installs the specify CLI)"
   - name: "Spec Kit scaffolded (.specify/)"
     probe: "test -d .specify"

@@ -3,9 +3,9 @@
 # package-root-relative; the version pin is the git tag (spec-kit/vX.Y.Z),
 # never a field in this file.
 #
-# NOTE: the Spec Kit version this package drives (github/spec-kit@v0.10.3) is
+# NOTE: the Spec Kit version this package drives (github/spec-kit@v1.4.3) is
 # pinned inside `setup.sh` and the `sk-init` flow's `ensure` node (every
-# `uv tool install … spec-kit.git@v0.10.3`). It is independent of the package tag.
+# `uv tool install … spec-kit.git@v1.4.3`). It is independent of the package tag.
 schemaVersion: 1
 name: spec-kit
 metadata:
@@ -16,7 +16,7 @@ metadata:
     - { kind: docs, title: "Spec-Driven Development", url: "https://github.com/github/spec-kit/blob/main/spec-driven.md" }
     - { kind: docs, title: "Codex skills", url: "https://developers.openai.com/codex/skills" }
   sources:
-    - { component: "capability/reference/* (phase + frontmatter reference)", origin: "git:github.com/github/spec-kit@v0.10.3" }
+    - { component: "capability/reference/* (phase + frontmatter reference)", origin: "git:github.com/github/spec-kit@v1.4.3" }
 flows:
   - { id: sk-dev, path: flows/dev }
   - { id: sk-init, path: flows/init }

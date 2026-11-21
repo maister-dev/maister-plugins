@@ -8,7 +8,7 @@ through its `specify` CLI plus the agent-native skills that `specify init`
 scaffolds **into the project** (installed by `setup.sh` / the matching init
 flow).
 
-Targets `github/spec-kit@v0.10.3` (MIT).
+Targets `github/spec-kit@v1.4.3` (MIT).
 
 ## The phases (and which speckit skill each flow node invokes)
 
@@ -46,6 +46,7 @@ compatibility: "Requires spec-kit project structure with .specify/ directory"
 metadata:
   author: "github-spec-kit"
   source: "templates/commands/plan.md"
+  version: "1.4.3"
 user-invocable: true
 disable-model-invocation: false
 ---
