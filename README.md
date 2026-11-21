@@ -32,7 +32,9 @@ packages/
 | [`core-react`](packages/core-react/) | React and TypeScript frontend skills for components, state and data flow, accessibility, testing, and performance. |
 | [`core-pg`](packages/core-pg/) | PostgreSQL skills for schema design, migrations, query tuning, indexing, transactions, reliability, and operations. |
 | [`core-skill-authoring`](packages/core-skill-authoring/) | Skill-authoring skills for designing, structuring, validating, testing, and maintaining reusable MAIster agent skills. |
-| [`env-e2e`](packages/env-e2e/) | Ephemeral docker-compose env + Playwright e2e as readiness evidence: 1 flow (`env-e2e`) whose `check` node owns up→seed→test→capture→down atomically (engine ≥ 3.3.0, `MAISTER_FLOW_DIR`); red suites drive a bounded fix loop, exhaustion escalates to a human — never auto-ship. |
+| [`env-e2e`](packages/env-e2e/) | Four flows for ephemeral Compose environments and CI evidence: local verification, CI, push, or PR delivery. |
+| [`spec-kit`](packages/spec-kit/) | GitHub Spec Kit 1.4.3: initialize the Claude or Codex integration, then drive specification, clarification, planning, and implementation. |
+| [`stand-operations`](packages/stand-operations/) | Diagnose a configured stand component, obtain human approval for the restart, and verify the outcome independently. |
 
 ## Documentation
 
@@ -52,7 +54,7 @@ Per-package reference docs and design specs live under [`docs/`](docs/):
 
 ## Versioning
 
-Per-package git tags: **`<name>/vX.Y.Z`** (e.g. `aif/v3.0.0`). The tag is the
+Per-package git tags: **`<name>/vX.Y.Z`** (e.g. `aif/v3.1.0`). The tag is the
 user-facing pin; MAIster resolves it to a commit SHA at install time and the
 SHA is runtime truth (content-addressed cache, immutable revisions). A
 package release tags only its own name — packages version independently.
@@ -61,7 +63,7 @@ package release tags only its own name — packages version independently.
 
 - **Target shape** (MAIster package management, P1+): one `packages[]` entry
   in the project's `maister.yaml` —
-  `{ id: aif, source: <this repo URL>, version: aif/v3.0.0, path: packages/aif }` —
+  `{ id: aif, source: <this repo URL>, version: aif/v3.1.0, path: packages/aif }` —
   or, with the platform catalog (P2), add this repo as a package source in
   `/settings` and install/attach from the UI.
 - **Until then**: per-flow wiring — nine `flows[]` entries pointing at

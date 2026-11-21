@@ -15,7 +15,7 @@ design note for the v3 line:
   subagents).
   Originally extracted from the MAIster repo (`plugins/aif @ maister@c104f66b`,
   2026-06-12).
-- **Pin:** git tag `aif/vX.Y.Z` (current line `aif/v3.0.0`).
+- **Pin:** git tag `aif/vX.Y.Z` (current line `aif/v3.1.0`).
 
 ## Flows
 

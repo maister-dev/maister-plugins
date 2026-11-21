@@ -8,16 +8,24 @@ through `maister.yaml packages[]`, pinned by a per-package git tag
 
 ## Packages
 
-| Package | Reference | Flows | Capability bundle |
-| ------- | --------- | ----- | ----------------- |
-| `aif` | [aif/](aif/README.md) | `aif-dev` (consensus planning + codex cross-review), `aif-dev-light`, `aif-autonomous`, `aif-bugfix`, `aif-evolve`, `aif-roadmap`, `aif-init`, `aif-loop`, `aif-qa` | AI Factory skills + subagents (`github.com/lee-to/ai-factory@2.19.0`) |
-| `pstack` | [pstack/](pstack/README.md) | `pstack-investigate`, `pstack-interrogate`, `pstack-bugfix`, `pstack-feature`, `pstack-refactor`, `pstack-perf`, `pstack-prototype`, `pstack-visual-parity` | Full pstack `0.14.8` skills + agents (`cursor/plugins@7314f723`) |
-| `superpowers` | [superpowers/](superpowers/README.md) | `sp-dev`, `sp-debug`, `sp-plan`, `sp-execute` | superpowers skills, all 14 (`github.com/obra/superpowers@5.1.0`) |
-| `openspec` | [openspec/](openspec/README.md) | `os-dev`, `os-propose`, `os-apply`, `os-init` | reference-only — drives the `openspec` CLI (`@fission-ai/openspec@1.4.1`, installed by `setup.sh` / `os-init`); ADR-091 `requirements` precondition |
-| `bmad-bmm` | [bmad-bmm/](bmad-bmm/README.md) | `bmm-plan`, `bmm-dev-story`, `bmm-quick-dev` | BMAD Method v6 BMM SDLC: 6 platform-agent personas + 26 vendored BMM skills (`github.com/bmad-code-org/BMAD-METHOD@v6.8.0`) |
-| `bmad-tea` | [bmad-tea/](bmad-tea/README.md) | `tea-test-design`, `tea-automate`, `tea-nfr`, `tea-trace`, `tea-test-review` | BMAD Test Architect: Murat platform agent + 9 vendored testarch skills (`github.com/bmad-code-org/bmad-method-test-architecture-enterprise@v1.19.0`) |
-| `bmad-cis` | [bmad-cis/](bmad-cis/README.md) | `cis-discovery` | BMAD Creative Intelligence Suite: 6 creative platform-agent personas + 4 vendored creative skills (`github.com/bmad-code-org/bmad-module-creative-intelligence-suite@v0.2.1`) |
-| `env-e2e` | [env-e2e/](env-e2e/README.md) | `env-e2e` | Ephemeral compose env + Playwright e2e as readiness evidence: atomic `check`-node lifecycle script (`MAISTER_FLOW_DIR`, engine ≥ 3.3.0), verdict-routed rework loop, trap-guaranteed teardown; no capability bundle |
+| Package | Exported Flows | Reference |
+| --- | --- | --- |
+| `aif` | `aif-dev`, `aif-dev-light`, `aif-autonomous`, `aif-bugfix`, `aif-evolve`, `aif-roadmap`, `aif-init`, `aif-loop`, `aif-qa` | [Package reference](aif/README.md) |
+| `bmad-bmm` | `bmm-plan`, `bmm-build`, `bmm-dev-story`, `bmm-quick-dev` | [Package reference](bmad-bmm/README.md) |
+| `bmad-cis` | `cis-discovery` | [Package reference](bmad-cis/README.md) |
+| `bmad-tea` | `tea-test-design`, `tea-automate`, `tea-nfr`, `tea-trace`, `tea-test-review` | [Package reference](bmad-tea/README.md) |
+| `core` | — | [Package reference](../packages/core/README.md) |
+| `core-java` | — | [Package reference](../packages/core-java/README.md) |
+| `core-pg` | — | [Package reference](../packages/core-pg/README.md) |
+| `core-react` | — | [Package reference](../packages/core-react/README.md) |
+| `core-skill-authoring` | — | [Package reference](../packages/core-skill-authoring/README.md) |
+| `env-e2e` | `env-e2e`, `env-e2e-ci`, `env-e2e-ci-push`, `env-e2e-ci-pr` | [Package reference](env-e2e/README.md) |
+| `openspec` | `os-dev`, `os-propose`, `os-apply`, `os-init` | [Package reference](openspec/README.md) |
+| `pstack` | `pstack-investigate`, `pstack-bugfix`, `pstack-feature`, `pstack-interrogate`, `pstack-refactor`, `pstack-perf`, `pstack-prototype`, `pstack-visual-parity` | [Package reference](pstack/README.md) |
+| `rah` | `rah-root-d1`, `rah-root-d2`, `rah-research`, `rah-control` | [Package reference](../packages/rah/README.md) |
+| `spec-kit` | `sk-dev`, `sk-init`, `sk-dev-codex`, `sk-init-codex` | [Package reference](../packages/spec-kit/README.md) |
+| `stand-operations` | `stand-maintenance` | [Package reference](../packages/stand-operations/README.md) |
+| `superpowers` | `sp-dev`, `sp-debug`, `sp-plan`, `sp-execute`, `sp-execute-pr` | [Package reference](superpowers/README.md) |
 
 ## What every package documents
 
