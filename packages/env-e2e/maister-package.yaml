@@ -12,5 +12,8 @@ metadata:
     - { kind: docs, title: "Package reference", url: "https://github.com/maister-dev/maister-plugins/blob/main/docs/env-e2e/README.md" }
 flows:
   - { id: env-e2e, path: flows/env-e2e }
+  - { id: env-e2e-ci, path: flows/env-e2e-ci }
+  - { id: env-e2e-ci-push, path: flows/env-e2e-ci-push }
+  - { id: env-e2e-ci-pr, path: flows/env-e2e-ci-pr }
 # Pure script package: no capability bundle, no agents, no setup.sh, no MCPs.
 mcps: []

@@ -119,6 +119,40 @@ prints the registration steps. Green ends done-side; red exercises
 fail → rework → converge/escalate. Running green + red simultaneously is the
 concurrency proof (distinct `maister-run-*` compose projects).
 
+
+## Remote CI reference Flows
+
+The remote CI reference exports require MAIster 3.15 or newer. They run the Playwright
+checks, require the current report, publish the tested branch and await
+`build` on the exact tested commit. A failed remote check re-enters the
+bounded implementation loop. Timeout and exhausted remote rework carry
+classified failure into the run's completion policy.
+
+- `env-e2e-ci` reads the GitHub Actions result through the provider scanner.
+  Review the issuer and required check name before pinning this export.
+- `env-e2e-ci-push` accepts the named `build` callback. Configure
+  `remote_ci.on.issuer` as the ID of the trusted project token before pinning
+  the Flow for autonomous completion. Give the token only `waits:signal`.
+  Use the callback address for the exact ref and SHA. A failed callback can
+  include `failedChecks` for rework context. Autonomous completion also
+  requires a current `build` result from `provider_issuer` on the same SHA.
+  Approve both source identities in the project policy.
+
+- `env-e2e-ci-pr` opens a ready PR and waits for a confirmed merge on the
+  original source SHA. At launch select Pull request delivery. A confirmed
+  conflict can use the engine's branch-sync resolver once and repeat local
+  verification, publication, CI and review on the new commit. The operator
+  handles closed PRs or conflicts for which the current policy refuses recovery.
+
+The completing project must enable the execution-policy axis and name the
+approved CI source. At interactive launch, authorize publication separately.
+The exports also work with human-controlled promotion.
+
+A release must ship the canonical env-e2e lifecycle script within each Flow
+directory. Run `tests/sync-reference-assets.sh` after editing the canonical
+script. Use `tests/sync-reference-assets.sh --check` to verify the shipped
+copies match before cutting a package revision.
+
 ## See also
 
 - [Design spec (SSOT)](../../docs/env-e2e/specs/2026-07-31-env-e2e-design.md)
