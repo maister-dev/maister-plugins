@@ -7,6 +7,9 @@ metadata:
   summary: "First-party PostgreSQL skills for schema design, migrations, query tuning, indexing, transactions, reliability, and operations."
   links:
     - { kind: docs, title: "MAIster package contract", url: "https://github.com/maister-dev/maister/blob/master/docs/pv/package-management.md" }
+  sources:
+    - { component: "database-migrations, postgres-patterns", origin: "github.com/affaan-m/everything-claude-code@v2.2.3" }
+    - { component: "database-optimizer, postgres-pro, sql-pro", origin: "github.com/Jeffallan/claude-skills@v0.4.21" }
 flows: []
 capabilities:
   - { id: core-pg-bundle, path: capability }

@@ -1,7 +1,7 @@
 # MAIster Core PostgreSQL package
 
-First-party PostgreSQL engineering skills for MAIster agent sessions. The
-package is a skill-only scaffold: it ships no flows, platform agents, or MCP
+PostgreSQL engineering skills for MAIster agent sessions. The
+package is a skill bundle: it ships no flows, platform agents, or MCP
 templates.
 
 ## Intended scope
@@ -10,6 +10,13 @@ templates.
 - Query planning, indexing, and performance tuning.
 - Transactions, concurrency, and data integrity.
 - Reliability, maintenance, observability, and production operations.
+
+## Skill sources
+
+- [affaan-m/everything-claude-code v2.2.3](https://github.com/affaan-m/everything-claude-code/tree/v2.2.3) — `database-migrations`, `postgres-patterns`.
+- [Jeffallan/claude-skills v0.4.21](https://github.com/Jeffallan/claude-skills/tree/v0.4.21) — `database-optimizer`, `postgres-pro`, `sql-pro`.
+
+License notices ship in `capability/reference/`.
 
 ## Adding a skill
 
