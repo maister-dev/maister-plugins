@@ -1,0 +1,206 @@
+schemaVersion: 1
+name: env-e2e-ci-pr
+metadata:
+  title: "Env-e2e with CI and PR merge"
+  summary: "Run in-project Playwright checks, publish the tested revision, and verify CI and review evidence, and wait for a confirmed PR merge."
+runner_profiles:
+  claude-code:
+    capability_agent: claude
+    adapter: claude
+    model: claude-opus-4-8
+    provider:
+      kind: anthropic
+# The autonomous completion and classified failure syntax requires 3.15.0.
+compat:
+  engine_min: 3.15.0
+defaults:
+  session_policy: resume
+# FR-8: refuse launch BEFORE any worktree/session/token spend. Probes are
+# HOST invariants only — they run on the WEB tier in the project repo's
+# default-branch checkout, so branch-owned files (.maister-env-e2e.sh) must
+# NOT be probed here: a branch that adds the config would be wrongly refused.
+# Config presence/shape is validated in-run at the exact tested revision.
+requirements:
+  - name: "docker daemon reachable on the web tier"
+    probe: "docker info"
+    hint: "install/start Docker on the host running the MAIster web tier (cli/check nodes execute there)"
+  - name: "docker compose v2 available"
+    probe: "docker compose version"
+    hint: "install the docker compose v2 plugin on the web tier"
+autonomous_completion:
+  ci: remote_ci
+  gates: [{ node: report_ready, gate: e2e-current }]
+  review: { node: ai_review, gate: candidate-review }
+  failure_reasons: [wait_timeout, rework_exhausted]
+nodes:
+  - id: implement
+    type: ai_coding
+    retry_policy:
+      attempts: 2
+      on_errors: [SPAWN, EXECUTOR_UNAVAILABLE, CHECKPOINT, ACP_PROTOCOL]
+      workspace: rewind-to-node-checkpoint
+    action:
+      prompt: |
+        {{ task.prompt }}
+
+        Commit the candidate before verification. Leave the worktree clean.
+
+        Recent CI results (check names and state):
+        {{ ci_feedback }}
+
+        Non-interactive run — do NOT ask the user clarifying questions; proceed
+        autonomously (tool-use permission prompts are handled by the platform).
+
+        The change will be verified by the project's Playwright e2e suite
+        running in an isolated docker-compose environment (`.maister-env-e2e.sh`
+        describes the stack). Make the suite pass; do not weaken or skip tests
+        to get green.
+
+        Feedback from the previous e2e attempt (empty on the first pass):
+        {{ e2e_comments }}
+
+        Reviewer guidance after loop exhaustion (empty unless a human
+        escalation happened):
+        {{ review_comments }}
+    output:
+      produces:
+        - id: impl-diff
+          kind: diff
+    transitions:
+      success: e2e
+
+  # FR-1: ONE check node owns the env lifecycle atomically; the packaged
+  # script (SSOT) is executed from the installed revision via MAISTER_FLOW_DIR
+  # (FR-11) — the :? guard turns a pre-3.3.0 engine into an actionable failure.
+  # FR-5: the script exits 0 whenever tests executed; the verdict routes via
+  # decide below. Non-zero exit = config/env failure class → run Failed.
+  - id: e2e
+    type: check
+    # FR-12: 900 s budget (≤ the 1 h MAISTER_MAX_CLI_TIMEOUT_MS host ceiling).
+    settings:
+      timeoutMs: 900000
+    action:
+      command: 'bash "${MAISTER_FLOW_DIR:?env-e2e requires MAIster engine >= 3.3.0 (MAISTER_FLOW_DIR missing)}/scripts/run-e2e.sh" "maister-run-{{ run.id }}"'
+    output:
+      result:
+        schema: ./schemas/e2e-result.json
+        required: true
+      # FR-4: evidence on BOTH verdicts, re-produced every attempt; the
+      # requiredFor currency is the green-path promotion gate (spec §3 inv. 4).
+      produces:
+        - id: e2e-report
+          kind: test_report
+          path: e2e-report.tar.gz
+          requiredFor: [review, merge]
+        - id: e2e-logs
+          kind: log
+          path: e2e-compose-logs.txt
+    decide:
+      from: output.verdict
+    transitions:
+      pass: report_ready
+      fail: implement
+      escalate: review
+    # FR-6: the failing block travels as the e2e_comments result field.
+    # Exhaustion routes to the human review node — never auto-ship (ADR-118).
+    rework:
+      allowedTargets: [implement]
+      workspacePolicies: [keep]
+      maxLoops: 3
+      commentsVar: e2e_comments
+      onExhaustion: escalate
+
+
+  - id: report_ready
+    type: cli
+    action: { command: "true" }
+    pre_finish:
+      gates:
+        - id: e2e-current
+          kind: artifact_required
+          mode: blocking
+          inputArtifacts: [e2e-report]
+    transitions: { success: publish }
+
+  - id: publish
+    type: publish
+    pr: ready
+    transitions: { success: remote_ci }
+
+  - id: remote_ci
+    type: wait
+    timeout: 3600
+    on:
+      kind: ci
+      publication: publish
+      transport: pull
+      issuer: github-actions
+      checks: [build]
+    transitions:
+      success: ai_review
+      failure: implement
+      cancelled: review
+      timeout: { end: failed, reason: wait_timeout }
+      stale: review
+      exhausted: { end: failed, reason: rework_exhausted }
+    rework:
+      allowedTargets: [implement]
+      workspacePolicies: [keep]
+      maxLoops: 2
+      commentsVar: ci_feedback
+      onExhaustion: exhausted
+
+  - id: ai_review
+    type: cli
+    action: { command: "true" }
+    pre_finish:
+      gates:
+        - id: candidate-review
+          kind: ai_judgment
+          mode: blocking
+          prompt: |
+            Review the committed candidate against the requested task and target.
+            Inspect correctness, tests, regressions, security and scope.
+            Return JSON with verdict ("pass" or "fail"), risk ("low", "medium"
+            or "high"), and numeric confidence in [0,1].
+    transitions: { success: await_pr }
+
+  - id: await_pr
+    type: wait
+    timeout: 86400
+    on: { kind: pr, publication: publish }
+    transitions:
+      merged: done
+      closed: review
+      conflict: e2e
+      cancelled: review
+      timeout: { end: failed, reason: wait_timeout }
+      stale: review
+      exhausted: { end: failed, reason: rework_exhausted }
+    rework:
+      allowedTargets: [e2e]
+      workspacePolicies: [keep]
+      maxLoops: 1
+      onExhaustion: exhausted
+
+  - id: review
+    type: human
+    pre_finish:
+      gates:
+        - id: e2e-report-required
+          kind: artifact_required
+          mode: blocking
+          inputArtifacts: [e2e-report]
+    finish:
+      human:
+        role: maintainer
+        decisions: [rework]
+        commentsVar: review_comments
+    transitions:
+      rework: implement
+    rework:
+      allowedTargets: [implement]
+      workspacePolicies: [keep]
+      maxLoops: 3
+      commentsVar: review_comments
+      resetTargets: [e2e, remote_ci]
