@@ -11,7 +11,7 @@ refuse launch against a different CLI version. Structured outputs carry the
 approved `changeName` into apply/archive and feed independent review findings
 into rework; proposal and implementation flows expose typed public results.
 
-The npm distribution requires Node.js 22.20.0 or later. These flows operate on the project-local OpenSpec root; standalone stores are outside their promotion workspace.
+The npm distribution requires Node.js 22.20.0 or later. A CLI node verifies the resolved planning root in the run worktree before an agent edits artifacts; standalone stores are outside their promotion workspace.
 
 See [the package reference](../../docs/openspec/README.md). Vendored upstream
 content remains under the MIT license in

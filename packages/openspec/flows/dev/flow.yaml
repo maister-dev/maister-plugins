@@ -50,6 +50,21 @@ requirements:
     probe: "test \"$(openspec --version)\" = \"2.1.1\""
     hint: "run the os-init flow first, or: npm i -g @fission-ai/openspec@2.1.1"
 nodes:
+  - id: local_root
+    type: cli
+    action:
+      command: |
+        openspec list --json | node -e '
+            const fs = require("node:fs");
+            const cwd = fs.realpathSync(".");
+            const { root } = JSON.parse(fs.readFileSync(0, "utf8"));
+            if (root.source !== "nearest" || fs.realpathSync(root.path) !== cwd ||
+                fs.realpathSync("openspec") !== require("node:path").join(cwd, "openspec")) {
+              throw new Error("This flow requires an OpenSpec root in the current worktree: " + JSON.stringify(root));
+            }'
+    transitions:
+      success: propose
+
   - id: propose
     type: ai_coding
     # Agent writes the proposal/design/tasks CONTENT + spec deltas, so it edits

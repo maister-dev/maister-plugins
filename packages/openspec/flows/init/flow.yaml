@@ -37,6 +37,23 @@ nodes:
     action:
       command: "npm i -g @fission-ai/openspec@2.1.1 && test \"$(openspec --version)\" = \"2.1.1\""
     transitions:
+      success: local_root
+
+  - id: local_root
+    type: cli
+    action:
+      command: |
+        set -eu
+        openspec init --tools none --force
+        openspec list --json | node -e '
+            const fs = require("node:fs");
+            const cwd = fs.realpathSync(".");
+            const { root } = JSON.parse(fs.readFileSync(0, "utf8"));
+            if (root.source !== "nearest" || fs.realpathSync(root.path) !== cwd ||
+                fs.realpathSync("openspec") !== require("node:path").join(cwd, "openspec")) {
+              throw new Error("This flow requires an OpenSpec root in the current worktree: " + JSON.stringify(root));
+            }'
+    transitions:
       success: init
 
   - id: init
@@ -55,10 +72,10 @@ nodes:
         - MAIster owns git + promotion: do NOT create worktrees, switch/create branches, merge, push, or open PRs.
 
         THIS NODE — Initialize OpenSpec in this project (one-time):
-        - Scaffold it with `openspec init --tools none --force`. The package already materializes the matching 12 Agent Skills, so do not generate or overwrite client-specific skills or commands.
-        - If a project brief (openspec/project.md or similar) was scaffolded, populate it with REAL project context: explore the repo (stack, build/test commands, conventions, directory structure, domain) and write an accurate brief that future OpenSpec changes will rely on. Extra context: {{ task.prompt }}
+        - The CLI has initialized this worktree. Preserve its schema and existing project rules.
+        - Record applicable project constraints from {{ task.prompt }} in the context field of openspec/config.yaml. Preserve existing settings and include only restrictions that cannot be inferred from the code.
         - Apply reviewer feedback when re-entering this node: {{ review_comments }}
-        - Do NOT commit — the commit node finalizes. STOP after scaffolding + filling project.md; the next node is human review.
+        - Do NOT commit — the commit node finalizes. STOP after reviewing project constraints; the next node is human review.
     transitions:
       success: review
 
