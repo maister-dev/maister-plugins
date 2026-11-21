@@ -1,7 +1,7 @@
 # MAIster Core React package
 
-First-party React and TypeScript frontend skills for MAIster agent sessions. The
-package is a skill-only scaffold: it ships no flows, platform agents, or MCP
+React and TypeScript frontend skills for MAIster agent sessions. The
+package is a skill bundle: it ships no flows, platform agents, or MCP
 templates.
 
 ## Intended scope
@@ -10,6 +10,13 @@ templates.
 - State management and server/client data flow.
 - Accessibility and interaction quality.
 - Frontend testing, rendering performance, and bundle efficiency.
+
+## Skill sources
+
+- [affaan-m/everything-claude-code v2.2.3](https://github.com/affaan-m/everything-claude-code/tree/v2.2.3) — `database-migrations`, `nextjs-turbopack`, `react-patterns`, `react-performance`, `react-testing`.
+- [Jeffallan/claude-skills v0.4.21](https://github.com/Jeffallan/claude-skills/tree/v0.4.21) — `javascript-pro`, `nextjs-developer`, `react-expert`, `react-native-expert`, `typescript-pro`.
+
+License notices ship in `capability/reference/`.
 
 ## Adding a skill
 
